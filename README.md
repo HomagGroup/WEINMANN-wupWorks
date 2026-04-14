@@ -1,3 +1,5 @@
+⚠️ Draft version. Not yet officially released.
+
 <span style="color:red">[This is preliminary documentation and is subject to change.] </span>
 
 # WEINMANN wup specification
