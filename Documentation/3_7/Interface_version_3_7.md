@@ -131,10 +131,10 @@ Permissible codings are: ASCII and UTF-16 (BMP, LITTLE ENDIAN).
 		- (A) Definition of components of the frame work, introduced by the definition of a component: UG, OG, LS, QS, BT4, BT6, EBT, BTn
 			- Attributes of a component: PROPERTY
 			- Component processing steps: UNIT, SG, PSG, TA, KN, MPL, PAF, PZF, PSF, SZ
-			- Spatial processing plane RBE/RBE2, followed by component processing steps
+			- Spatial processing plane RBE2, followed by component processing steps
 		- (B) Definition of component positions, introduced by the definition of layered components of the same type: PLI0...PLI10, PLA0...PLA10
 			- Layer processing steps: UNIT, PSG, PAF, PSF, NR, NBR, PSZ, PML, PAL, KN
-			- Spatial processing plane RBE/RBE2, followed by the corresponding processing steps
+			- Spatial processing plane RBE2, followed by the corresponding processing steps
 		- (C) Definition of modules: MODUL, ENDMODUL
 			- Definition of the component positions (B) or components of the frame work (A)
 
@@ -157,7 +157,7 @@ The definition of a category is completed by the definition of a new category. (
 - Parameter range for floating point numbers, unless specified otherwise: +- 3.402 * 1038. Max. three decimal points separated by a point, up to +/- 10000000 not specified exponentially. Floating point numbers are used for lines, radii, angles, and coordinates
 - Positions and dimensions are specified in mm
 - Angles are specified in degrees
-- Within full version numbers, such as 3.0–3.9, the keywords remain constant
+- Within full version numbers, such as 3.0-3.9, the keywords remain constant
 - In this document, optional parameters are specified in square brackets (e.g. [Z]). Standard settings are specified in curly brackets (e.g. {0})
 - "*" behind a parameter indicates any frequent reproducibility of the parameter
 - Explicitly named data types are listed in brackets preceded by a colon. Character string (:string), floating point number (:float), integer (:int), natural number (:uint).
@@ -370,7 +370,7 @@ New parameters added are always located at the end of the parameter set. They ne
 <h4 id="3.3.6-interface-version-3.5">3.3.6 Interface version 3.5</h4>
 
 - Introduction of ENDRT, STAPEL 
-- t.b.d. korrekt schreiben: Deprecate of SLA
+- SLA and SLI are deprecated
 
 ---
 
@@ -979,9 +979,9 @@ The evaluation of the ones position is being withdrawn.
 |  |  |   
 |:---	|	:---	|	
 |The tens position in the material index defines the rotation around the longitudinal axis of the compo- nent.|0: Not rotated|
-||1: rotated by 90°|
-||2: rotated by 180°|
-||3: rotated by 270°|
+||1: rotated by 90�|
+||2: rotated by 180�|
+||3: rotated by 270�|
 
 
 If the rotation and alignment are specified, the rotation takes effect before the alignment.
@@ -1000,7 +1000,7 @@ Definition i = 11 i = 20 i = 32
 
 Different materials have different values in the hundreds position of the material index.
 
-The numerical values 0 …9900 can be used as required.
+The numerical values 0-9900 can be used as required.
 
 The numerical values from 10000 to 29900 and from 32700 are reserved for internal purposes.
 
@@ -1016,9 +1016,9 @@ Note: The following material index list is a recommendation. It can be adjusted 
 |Material  | Index |   
 |:---	|	:---	|
 |Wood component |01-09|
-|Plaster phases t.b.d. Gipsfaserplatte |10-19|
+|Plaster phases (Fermacell) |10-19|
 |Soft fiber panel (Gutex, ...) |20-29|
-|OSB |30-39|
+|OSB (Oriented Strand Board) |30-39|
 |Chipboard| 40-49|
 |Plaster-base sheeting |50-59|
 |Plaster |60-69|
@@ -1301,7 +1301,7 @@ Example:
 
 <h3 id="6.5-polygon-bocked-surfaces">6.5 Polygon bocked surfaces</h3>
 
-The control code of a blocked surface qualifies the blocked surface for …
+The control code of a blocked surface qualifies the blocked surface for:
 
 | Control code  | Processing class |   
 |:---	|	:---	|	
@@ -1317,9 +1317,9 @@ The control code of a blocked surface qualifies the blocked surface for …
 
 <h3 id="7.1-rotation-and-tilt-angle-of-spatial-processing-plane-rbe2">7.1 Rotation and tilt angle of spatial processing plane RBE2</h3>
 
-Starting from the image under 2.3.5, the transformation from Figure a.) to Figure b.) arises through the positive angle α.
+Starting from the image under 2.3.5, the transformation from Figure a.) to Figure b.) arises through the positive angle.
 
-The transformation from b.) to c.) arises through the positive angle γ.
+The transformation from b.) to c.) arises through the positive angle.
 
 A positive angle δ would rotate the plane from Figure c.) around the already transformed Z" axis again.
 
@@ -1344,7 +1344,7 @@ A positive angle δ would rotate the plane from Figure c.) around the already tr
 
 Please note:
 
-The tilt angle γ relates to edges or surfaces depending on the value of the s bit.
+The tilt angle relates to edges or surfaces depending on the value of the s bit.
 
 See definition of the saw cut.
 
