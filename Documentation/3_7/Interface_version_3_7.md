@@ -382,24 +382,30 @@ New parameters added are always located at the end of the parameter set. They ne
 
 <h4 id="3.3.8-interface-version-3.7">3.3.8 Interface version 3.7</h4>
 
-- Adding additional header keywords: ELEMENTID, CADDOKUMENTID, BEARBEITER, BAUVORHABEN, KUNDENNAME, OBJEKT and ORT
-- Detailing or correction of the header keywords: VERSION, ANR, ELB, ELN, ZNR and CAD
-- Deprecation the header keyword ELA. Elements are now always imported with the inside element view.
-- Removal of the already aborted header keyword: WNP
+- Additional:
+  - header keywords: ELEMENTID, CADDOKUMENTID, BEARBEITER, BAUVORHABEN, KUNDENNAME, OBJEKT and ORT
+  - keyword for the identification of a component, panel, module, unprocessed part :
+    -  MODELLREF, CADMODELLREF and TEILENR.
+  - keyword for component processing steps: REFKER and PAL.
+    - control code for the application line: Gluing.
+  - control code for defining a panel: Tongue/Groove.
+
+
+- Removal: 
+  - of the already aborted header keyword: WNP
+  - of SLI and SLA
+  - of the already aborted keyword for component processing steps: KER, BOZ, BOY, BOX, FRZ, FRY, PFZ and PFY
+  - of the already aborted keyword for panel processing steps: BOZ
+  - of the already aborted keyword for external NC programs: NC
+  - of the already aborted keyword: RBE.
+
+- Deprecation: 
+  - the header keyword ELA. Elements are now always imported with the inside element view.
+
 - Translation errors in the latest version for LS and QS have been removed.
-- Additional keyword for the identification of a component: MODELLREF, CADMODELLREF and TEILENR.
-- Removal of SLI and SLA
-- Additional keyword for the identification of a panel: MODELLREF, CADMODELLREF and TEILENR.
 - Adjusting the height calculation of a layer based on the thickest element. This also applies retroactively
-- Additional keyword for the identification of an unprocessed part: MODELLREF, CADMODELLREF and TEILENR.
-- Additional keyword for the identification of a module: MODELLREF, CADMODELLREF and TEILENR.
-- Removal of the already aborted keyword: RBE.
-- Adding keyword for component processing steps: REFKER and PAL.
-- Removal of the already aborted keyword for component processing steps: KER, BOZ, BOY, BOX, FRZ, FRY, PFZ and PFY.
-- Removal of the already aborted keyword for panel processing steps: BOZ.
-- Removal of the already aborted keyword for external NC programs: NC.
-- Introduction of a control code for defining a panel: Tongue/Groove.
-- Additional control code for the application line: Gluing.
+- Detailing or correction of the header keywords: VERSION, ANR, ELB, ELN, ZNR and CAD
+
 
 ---
 
