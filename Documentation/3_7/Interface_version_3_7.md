@@ -141,7 +141,7 @@ Permissible codings are: ASCII and UTF-16 (BMP, LITTLE ENDIAN).
 
 Multiple specifications of definitions of the categories (A), (B), or (C) are possible.
 
-The definition of a category is completed by the definition of a new category. (t.b.d) wup keyword
+The definition of a category is completed by the definition of a new category.
 
 ![File Structure Overview](Interface_version_3_7_images/file_structure_2_1.svg)
 
@@ -456,10 +456,10 @@ The following commands define single timber components and built-in parts.
 |QS|ly, bx, hz, x, y, i, name, z|Cross beam. Length is given as ly (Y direction) and width as bx (X direction).|
 |BT4|lx, by, hz, x11, y11, x12, y12, x21, y21, x22, y22, i, name, z|Component with 4 corner points in two point rows (P1.x and P2.x).|
 |BT6|lx, by, hz, x11, y11, x12, y12, x13, y13, x21, y21, x22, y22, x23, y23, i, name, z|Component with 6 corner points in two point rows (P1.x and P2.x).|
-|BTn|lx, by, hz, x, y, z, i, name|Component with n corner points. The outline geometry is defined by the polygon points (PP/KB) that follow the component definition. If no polygon points are specified, the parameters lx, by, hz, x, y, z are interpreted as a rectangular component — equivalent to LS.|
+|BTn|lx, by, hz, x, y, z, i, name|Component with n corner points. The outline geometry is defined by the polygon points (PP/KB) that follow the component definition. If no polygon points are specified, the parameters lx, by, hz, x, y, z are interpreted as a rectangular component - equivalent to LS.|
 |EBT|lx, by, hz, x, y, i, name, z|Built-in part (for example steel member or special insert).|
 
-> **Recommendation:** Always use the most specific command that matches the structural role of a component — for example, use `OG` instead of `LS` for a top plate, or `QS` instead of `BT4` for a rectangular cross beam.
+> **Recommendation:** Always use the most specific command that matches the structural role of a component - for example, use `OG` instead of `LS` for a top plate, or `QS` instead of `BT4` for a rectangular cross beam.
 
 Common parameter meaning:
 
@@ -790,7 +790,6 @@ REFKER note:
 - The optional reference plane `e` specifies on which component plane the REFKER contour is defined. If omitted, the default plane applies.
 - The assigned plane `e` is not considered in offset calculation.
 - REFKER must be defined on every component that is intersected by the REFKER contour. It is not sufficient to define it on one component only.
-- t.b.d. (wupEditor): Improve visualization of REFKER in the wupEditor.
 
 ---
 
@@ -1624,11 +1623,4 @@ PP 40,0,35,113,0,30;
 PP 40,1800,35,113,0,30;
 ```
 
-
-
-
 <p><img src="Interface_version_3_7_images/page_073_img_215.png" style="width:70.1%;"></p>
-
-# Todo
-
-* **Befestigerindex hinzufügen**
