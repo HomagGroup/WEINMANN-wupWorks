@@ -984,9 +984,9 @@ The evaluation of the ones position is being withdrawn.
 |  |  |   
 |:---	|	:---	|	
 |The tens position in the material index defines the rotation around the longitudinal axis of the compo- nent.|0: Not rotated|
-||1: rotated by 90°|
-||2: rotated by 180°|
-||3: rotated by 270°|
+||1: rotated by 90ï¿½|
+||2: rotated by 180ï¿½|
+||3: rotated by 270ï¿½|
 
 
 If the rotation and alignment are specified, the rotation takes effect before the alignment.
