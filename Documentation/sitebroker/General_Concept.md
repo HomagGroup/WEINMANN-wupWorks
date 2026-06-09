@@ -12,8 +12,6 @@ Its primary purpose is to establish a unified interface for data exchange and re
 
 A key advantage of the SiteBroker is that it enables not only existing systems but also future applications—such as the productionAssist app—to utilize the same communication interface, streamlining interoperability and simplifying system architecture.
 
-![image.png](./.attachments/image-fa986526-3668-4fca-aa2e-a1b056260655.png)
-
 ## Architecture — MQTT
 
 MQTT (Message Queuing Telemetry Transport) is a lightweight, publish-subscribe messaging protocol designed for efficient, reliable communication in constrained environments, such as industrial automation or IoT systems. It operates over TCP/IP and is optimized for low bandwidth and low power consumption. Technically, MQTT communication involves three main components: clients (publishers and subscribers) and a central broker. Publishers send messages to specific topics on the broker, while subscribers receive messages by subscribing to those topics. The broker manages message distribution, ensuring that subscribers get the relevant data. This decouples message producers and consumers, enabling asynchronous and scalable communication. MQTT supports different Quality of Service (QoS) levels to balance message delivery reliability and performance.

@@ -16,8 +16,6 @@ A manual workstation behaves like a machine client towards the SiteBroker: it re
 
 It has to be ensured that the `OrderId` is synchronised by using `wup specification 3.7` and providing an `ELEMENTID`.
 
-![alt text](2026_05_Orchestrator.drawio.svg)
-
 ---
 
 ## 2. Behaviour per command
@@ -48,68 +46,9 @@ The orchestrator must include the document `OrderId` directly in the `Additional
 
 The workstation uses this id to look up and **display the document from its own database**, then reports `Active (2)` and finally `Done (3)` after the operator acknowledges.
 
-```
-Upstream System -> SiteBroker: Produce Request (OrderId in payload)
-SiteBroker -> Manual Workstation: Produce Request (OrderId in payload)
-
-Manual Workstation -> OwnDocumentDB: Fetch document {OrderId}
-Manual Workstation <-- OwnDocumentDB: Document data
-
-Manual Workstation -> User: Display document
-
-SiteBroker <-- Manual Workstation: Produced Response (Active)
-User -> Manual Workstation: Acknowledge step
-SiteBroker <-- Manual Workstation: Produced Response (Done)
-Upstream System <-- SiteBroker: Produced Response (Done)
-```
-
 ---
 
-## 3. Full flow comparison
-
-### Standard machine (e.g. WupWorks)
-
-```
-Orchestrator          Machine             CentralDB
-     │                    │                    │
-     │──LoadOrder ────────►│                    │
-     │                    │────GET /order ─────►│
-     │                    │◄───Order data ──────│
-     │◄──OrderLoaded ──────│                    │
-     │                    │                    │
-     │──PrepareBatch ─────►│                    │
-     │                    │────GET /job ───────►│
-     │                    │◄───Job data ────────│
-     │◄──BatchPrepared ────│                    │
-     │                    │                    │
-     │──ExecuteBatchVariant►│                   │
-     │◄──Produced(Active) ─│                    │
-     │◄──Produced(Done) ───│                    │
-```
-
-### Manual workstation (simplified)
-
-```
-Orchestrator         Manual Workstation    OwnDocDB
-     │                    │                    │
-     │──LoadOrder ────────►│                    │
-     │◄──OrderLoaded(OK) ──│  (no REST call)    │
-     │                    │                    │
-     │──PrepareBatch ─────►│                    │
-     │◄──BatchPrepared(OK)─│  (immediately Ready│
-     │                    │                    │
-     │──ExecuteBatchVariant►│                   │
-     │   [OrderId in payload]                   │
-     │                    │──fetch document────►│
-     │                    │◄──document data─────│
-     │                    │ (display document)  │
-     │◄──Produced(Active)──│                    │
-     │◄──Produced(Done) ───│  (after acknowledgement)
-```
-
----
-
-## 4. Important notes
+## 3. Important notes
 
 The general edge cases apply unchanged (see [Integration Guide §5](Integration_Guide.md#5-error-handling--edge-cases)). The points most relevant to a manual workstation are:
 

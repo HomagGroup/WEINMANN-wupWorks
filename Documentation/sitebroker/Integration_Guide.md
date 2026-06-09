@@ -120,34 +120,13 @@ public sealed class MachineWorker(ISiteBrokerClientService broker) : BackgroundS
 
 ## 4. Message flows
 
-Every interaction follows the same **request → intermediate status → terminal status** shape over the topics defined in [Interface & Method Specification §2](Interface_Specification.md#2-topic-structure), using the status enums of [§4](Interface_Specification.md#4-status-models). The full per-message payloads and sequence diagrams are in [Interface & Method Specification §6](Interface_Specification.md#6-message-reference).
+Every interaction follows the same **request → intermediate status → terminal status** shape over the topics defined in [Interface & Method Specification §2](Interface_Specification.md#2-topic-structure), using the status enums of [§4](Interface_Specification.md#4-status-models). The full per-message payloads are in [Interface & Method Specification §6](Interface_Specification.md#6-message-reference); runnable end-to-end flows are in the [demo applications](Demo_Application.md).
 
-### Load order (happy path)
-
-```
-MES                         SiteBroker                       Machine
- │  SendLoadOrderRequest(machine, orderId)                     │
- ├───── orchestrator/<m>/order/<id>/load ─────────────────────▶│  LoadOrderRequested
- │                                                             │  (resolve order via REST)
- │◀──── <m>/orchestrator/order/<id>/loaded  (Preparing) ───────┤  SendOrderLoadedResponse(Preparing)
- │  OrderLoadedResponse (Preparing)                            │
- │◀──── <m>/orchestrator/order/<id>/loaded  (Imported)  ───────┤  SendOrderLoadedResponse(Imported)
- │  OrderLoadedResponse (Imported)  ← terminal                 │
- │  ClearOrderLoadedResponse(machine, orderId)  (optional)     │
-```
-
-Prepare-batch and run-variant follow the same pattern using their respective topics and status enums.
+In short: the orchestrator sends a command (e.g. `SendLoadOrderRequest`) and correlates the incoming `*Response` events by the id it sent; the machine clears the retained command, then publishes one or more statuses ending in a terminal one (`Imported`/`Ready`/`Done`, or `Aborted`). A standard machine resolves documents/jobs via REST against the Central Database; load/prepare/run all share this pattern.
 
 ### Online mode
 
-The machine publishes its online mode (retained). The orchestrator should only dispatch jobs to machines that are `Online`:
-
-```
-Machine: SendOnlineModeResponse(true)  ──▶  <m>/orchestrator/settings/online-mode  (Status=2 Online)
-MES:     OnlineModeChangedResponse(machine, Online)
-```
-
-With `useLastWill: true`, an ungraceful disconnect makes the broker publish `Status=1` (Offline) automatically.
+The machine publishes its online mode (retained) via `SendOnlineModeResponse(bool)`; the orchestrator receives `OnlineModeChangedResponse` and should only dispatch jobs to machines last seen `Online`. With `useLastWill: true`, an ungraceful disconnect makes the broker publish `Offline` automatically.
 
 ---
 

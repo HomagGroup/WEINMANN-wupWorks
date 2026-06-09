@@ -41,7 +41,7 @@ public static class TopicHelper
     /// <param name="batchId">Batch id prepared</param>
     /// <returns>The topic name</returns>
     public static string GetBatchPreparedTopic(string machineNumber, string orchestrator, string batchId)
-        => $"{machineNumber}/{orchestrator}/batch/{batchId}/perpared";
+        => $"{machineNumber}/{orchestrator}/batch/{batchId}/prepared";
 
     /// <summary>
     /// Get the topic name when a batch variant is being requested to be produced

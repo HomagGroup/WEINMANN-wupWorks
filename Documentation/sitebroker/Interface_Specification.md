@@ -15,7 +15,7 @@
 7. [Clear mechanism (retained messages)](#7-clear-mechanism-retained-messages)
 8. [.NET client library API](#8-net-client-library-api)
 9. [Configuration reference](#9-configuration-reference)
-10. [Library structure (UML)](#10-library-structure-uml)
+10. [Library structure](#10-library-structure)
 
 ---
 
@@ -82,19 +82,21 @@ All payloads are transmitted as JSON. The unified envelope is `GenericPayloadDto
 |---|---|
 | `"Filename"` | File name (legacy import, optional) |
 | `"Variant"` | PSLV variant (see below) |
-| `"OrderId"` | Document ID — in responses and in the `produce` payload for the manual workstation |
-| `"BatchId"` | Job ID — in the `prepared` response |
-| `"BatchVariantId"` | Execution ID — in the `produced` response |
+| `"OrderId"` | Document ID — always included in the `load` command and the `loaded`/`prepared`/`produced` responses; optional (legacy) in the `prepare` command and (manual workstation) in the `produce` command |
+| `"BatchId"` | Job ID — always included in the `prepare` command and the `prepared`/`produced` responses; optional (legacy) in the `produce` command |
+| `"BatchVariantId"` | Execution ID — always included in the `produce` command and the `produced` response |
+
+> The id of the addressed resource is always carried both in the topic (4th segment, used for correlation) and redundantly in `AdditionalProperties`.
 
 ### PSLV format (Variant)
 
-The variant identifier follows the **PSLV** schema (Place / Side / Layer / Variant) and identifies the layer or side of a document to be executed. Example: `External-1`.
+The variant identifier follows the **PSLV** schema (Place / Side / Layer / Variant) and identifies the layer or side of a document to be executed. Example: `1-I-1-1`.
 
 ---
 
 ## 4. Status models
 
-All status enums are serialized as their **integer** value in `Status`.
+All status enums are serialized as their **integer** value in `Status`. Source of truth: [`Models/Enums/`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Models/Enums/).
 
 ### OrderStatus
 
@@ -153,37 +155,7 @@ All status enums are serialized as their **integer** value in `Status`.
 ```
 *(Status 2 = Online, Status 1 = Offline)*
 
-```
-Machine -> Machine: Set remote mode to online
-Machine -> SiteBroker: OnlineMode Response = 2
-SiteBroker -> Upstream System: OnlineMode Response = 2
-
-Machine -> Machine: Set remote mode to offline
-Machine -> SiteBroker: OnlineMode Response = 1
-SiteBroker -> Upstream System: OnlineMode Response = 1
-```
-
-![260222_OnlineMode.svg](./.attachments/260222_OnlineMode-f5b13e23-f791-4f17-8825-9fee4f25c329.svg)
-
-![SoWk2.svg](./.attachments/SoWk2.svg)
-
-<details>
-<summary>PlantUML</summary>
-
-```
-@startuml
-Machine -> Machine: Set remote mode to online
-
-SiteBroker <-- Machine: Set Online Mode Response to 2
-UpstreamSystem <-- SiteBroker: Set Online Mode Response to 2
-
-Machine -> Machine: Set remote mode to offline
-
-SiteBroker <-- Machine: Set Online Mode Response to 1
-UpstreamSystem <-- SiteBroker: Set Online Mode Response to 1
-@enduml
-```
-</details>
+The machine publishes `Online`/`Offline` whenever its remote mode changes; the orchestrator receives it via `OnlineModeChangedResponse`. With `useLastWill: true` the broker auto-publishes `Offline` on an ungraceful disconnect. Implementation: [`SiteBrokerClientService.SendOnlineModeResponse`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Services/SiteBrokerClientService.cs), last-will setup in [`ServiceExtensions.AddSiteBroker`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/ServiceExtensions.cs).
 
 ---
 
@@ -196,10 +168,13 @@ UpstreamSystem <-- SiteBroker: Set Online Mode Response to 1
 ```json
 {
   "Status": 0,
-  "AdditionalProperties": { "Filename": "xyz.wup" }
+  "AdditionalProperties": {
+    "OrderId": "550e8400-e29b-41d4-a716-446655440000",
+    "Filename": "xyz.wup"
+  }
 }
 ```
-*`Filename` is optional and only required for legacy use cases.*
+*`OrderId` is always included. `Filename` is optional and only required for legacy use cases.*
 
 **Response (Client → Orchestrator)** — Topic: `<MachineNumber>/orchestrator/order/<orderId>/loaded`
 
@@ -211,21 +186,7 @@ UpstreamSystem <-- SiteBroker: Set Online Mode Response to 1
 ```
 *Allowed status values: 1–3 (see [§4](#4-status-models)).*
 
-**Sequence (standard machine)**
-```
-Upstream System -> SiteBroker: Order Load Request
-SiteBroker -> Machine: Order Load Request
-
-Machine -> CentralDB: GET /order/{orderId}
-Machine <-- CentralDB: Order data
-
-SiteBroker <-- Machine: Order Loaded Response
-Upstream System <-- SiteBroker: Order Loaded Response
-```
-
-![260222_Order.svg](./.attachments/260222_Order-f520f14b-e528-4139-8eb4-ed3c40f4db9b.svg)
-
-![RP11.svg](./.attachments/RP11.svg)
+A standard machine resolves the document via REST (`GET /order/{orderId}`) against the Central Database before reporting `Imported`. Implementation: [`SiteBrokerControllerService.SendLoadOrderRequest`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Services/SiteBrokerControllerService.cs) / [`SiteBrokerClientService.SendOrderLoadedResponse`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Services/SiteBrokerClientService.cs).
 
 ### 6.2 Prepare batch
 
@@ -234,35 +195,26 @@ Upstream System <-- SiteBroker: Order Loaded Response
 ```json
 {
   "Status": 0,
-  "AdditionalProperties": { "Variant": "External-1" }
+  "AdditionalProperties": {
+    "BatchId": "660e8400-e29b-41d4-a716-446655440001",
+    "Variant": "1-I-1-1"
+  }
 }
 ```
-*`Variant` in PSLV format must be set for non-interactive (automatic) mode.*
+*`BatchId` is always included. `Variant` in PSLV format must be set for non-interactive (automatic) mode. `OrderId` may additionally be included (legacy).*
 
 **Response (Client → Orchestrator)** — Topic: `<MachineNumber>/orchestrator/batch/<batchId>/prepared`
 
 ```json
 {
   "Status": 3,
-  "AdditionalProperties": { "BatchId": "660e8400-e29b-41d4-a716-446655440001" }
+  "AdditionalProperties": {
+    "BatchId": "660e8400-e29b-41d4-a716-446655440001",
+    "OrderId": "550e8400-e29b-41d4-a716-446655440000"
+  }
 }
 ```
-*Allowed status values: 1–4 (see [§4](#4-status-models)).*
-
-**Sequence**
-```
-Upstream System -> SiteBroker: Batch Prepare Request
-SiteBroker -> Machine: Batch Prepare Request
-
-Machine -> Machine: Prepare batch
-
-SiteBroker <-- Machine: Batch Prepared Response
-Upstream System <-- SiteBroker: Batch Prepared Response
-```
-
-![260222_Batch.svg](./.attachments/260222_Batch-17230a58-996f-4bae-b397-83435f4ac5f2.svg)
-
-![SoWk1.svg](./.attachments/SoWk1.svg)
+*Allowed status values: 1–4 (see [§4](#4-status-models)). The machine prepares the batch locally, no REST call. Implementation: [`SiteBrokerControllerService.SendPrepareBatchRequest`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Services/SiteBrokerControllerService.cs) / [`SiteBrokerClientService.SendBatchPreparedResponse`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Services/SiteBrokerClientService.cs).*
 
 ### 6.3 Run batch variant
 
@@ -272,15 +224,22 @@ Standard payload (machine):
 ```json
 {
   "Status": 0,
-  "AdditionalProperties": {}
+  "AdditionalProperties": {
+    "BatchVariantId": "770e8400-e29b-41d4-a716-446655440002",
+    "BatchId": "660e8400-e29b-41d4-a716-446655440001"
+  }
 }
 ```
+*`BatchVariantId` is always included. `BatchId` is optional (legacy).*
 
 Extended payload (manual workstation — see [Manual Workstation Integration](Integration_ManualWorkstation.md)):
 ```json
 {
   "Status": 0,
-  "AdditionalProperties": { "OrderId": "550e8400-e29b-41d4-a716-446655440000" }
+  "AdditionalProperties": {
+    "BatchVariantId": "770e8400-e29b-41d4-a716-446655440002",
+    "OrderId": "550e8400-e29b-41d4-a716-446655440000"
+  }
 }
 ```
 
@@ -289,25 +248,14 @@ Extended payload (manual workstation — see [Manual Workstation Integration](In
 ```json
 {
   "Status": 2,
-  "AdditionalProperties": { "BatchVariantId": "770e8400-e29b-41d4-a716-446655440002" }
+  "AdditionalProperties": {
+    "BatchVariantId": "770e8400-e29b-41d4-a716-446655440002",
+    "BatchId": "660e8400-e29b-41d4-a716-446655440001",
+    "OrderId": "550e8400-e29b-41d4-a716-446655440000"
+  }
 }
 ```
-*Allowed status values: 1–4 (see [§4](#4-status-models)).*
-
-**Sequence (standard machine)**
-```
-Upstream System -> SiteBroker: Batch Variant Produce Request
-SiteBroker -> Machine: Batch Variant Produce Request
-
-Machine -> Machine: Execute batch variant
-
-SiteBroker <-- Machine: Batch Variant Produced Response
-Upstream System <-- SiteBroker: Batch Variant Produced Response
-```
-
-![260222_Run.svg](./.attachments/260222_Run-084a5415-0485-44c1-9d2b-d04913c64208.svg)
-
-![XT1D.svg](./.attachments/XT1D.svg)
+*Allowed status values: 1–4 (see [§4](#4-status-models)). Implementation: [`SiteBrokerControllerService.SendExecuteBatchVariantRequest`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Services/SiteBrokerControllerService.cs) / [`SiteBrokerClientService.SendBatchVariantExecutedResponse`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Services/SiteBrokerClientService.cs).*
 
 ---
 
@@ -337,70 +285,25 @@ Registers the MQTT client, both role services and a hosted worker that connects 
 
 ### `ISiteBrokerControllerService` (orchestrator / MES)
 
-**Events (responses received from machines):**
+Full method/event signatures: [`ISiteBrokerControllerService.cs`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Interfaces/ISiteBrokerControllerService.cs).
 
-| Event | Args | Raised when |
-|-------|------|-------------|
-| `OrderLoadedResponse` | `OrderStatusEventArgs` | A machine reports order-load progress. |
-| `BatchPreparedResponse` | `BatchStatusEventArgs` | A machine reports batch-prepare progress. |
-| `BatchVariantExecutedResponse` | `RunStatusEventArgs` | A machine reports batch-variant run progress. |
-| `OnlineModeChangedResponse` | `OnlineModeStatusEventArgs` | A machine changes its online mode. |
-
-**Commands (sent to a machine):**
-
-| Method | Purpose |
-|--------|---------|
-| `Task SendLoadOrderRequest(string machineNumber, Guid orderId, string? fileName)` | Ask a machine to load an order. `fileName` is optional (legacy). |
-| `Task SendPrepareBatchRequest(string machineNumber, Guid batchId, Guid? orderId, string? variant)` | Ask a machine to prepare a batch. `variant` (PSLV) is required for non-interactive mode; `orderId` is legacy. |
-| `Task SendExecuteBatchVariantRequest(string machineNumber, Guid batchVariantId, Guid? batchId, Guid? orderId = null)` | Ask a machine to run a batch variant. `orderId` is required for manual workstations that resolve the document from their own database. |
-
-**Clearing retained responses:**
-
-| Method | Purpose |
-|--------|---------|
-| `Task ClearOrderLoadedResponse(string machineNumber, Guid orderId)` | Remove the retained `…/order/<id>/loaded` response. |
-| `Task ClearBatchPreparedResponse(string machineNumber, Guid batchId)` | Remove the retained batch-prepared response. |
-| `Task ClearBatchVariantExecutedResponse(string machineNumber, Guid batchVariantId)` | Remove the retained batch-variant response. |
-
-**Lifecycle:** `Task Connect()` / `Task Disconnect()`. The hosted worker calls `Connect()` on startup; you normally do not call these directly.
+- **Receives** machine responses via the events `OrderLoadedResponse`, `BatchPreparedResponse`, `BatchVariantExecutedResponse` (`*StatusEventArgs`) and `OnlineModeChangedResponse` (`OnlineModeStatusEventArgs`).
+- **Sends** commands via `SendLoadOrderRequest` / `SendPrepareBatchRequest` / `SendExecuteBatchVariantRequest` (`fileName`/`orderId` are legacy/manual-workstation extras; `variant` is PSLV).
+- **Clears** retained responses via `ClearOrderLoadedResponse` / `ClearBatchPreparedResponse` / `ClearBatchVariantExecutedResponse`.
 
 ### `ISiteBrokerClientService` (machine / client)
 
-**Events (commands received from the orchestrator):**
+Full method/event signatures: [`ISiteBrokerClientService.cs`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Interfaces/ISiteBrokerClientService.cs).
 
-| Event | Args | Raised when |
-|-------|------|-------------|
-| `LoadOrderRequested` | `OrderStatusEventArgs` | The orchestrator requests an order load. |
-| `PrepareBatchRequested` | `BatchStatusEventArgs` | The orchestrator requests a batch prepare. |
-| `RunBatchVariantRequested` | `RunStatusEventArgs` | The orchestrator requests a batch variant run. |
+- **Receives** orchestrator commands via the events `LoadOrderRequested`, `PrepareBatchRequested`, `RunBatchVariantRequested`.
+- **Sends** responses via `SendOrderLoadedResponse` / `SendBatchPreparedResponse` / `SendBatchVariantExecutedResponse` / `SendOnlineModeResponse` (retained).
+- **Clears** retained commands via `ClearLoadOrderRequest` / `ClearPrepareBatchRequest` / `ClearExecuteBatchVariantRequest`. The `orchestrator` argument is the inbound sender name (literal `orchestrator`).
 
-**Responses (sent to the orchestrator):**
-
-| Method | Purpose |
-|--------|---------|
-| `Task SendOrderLoadedResponse(Guid orderId, OrderStatus status)` | Report order-load status. |
-| `Task SendBatchPreparedResponse(Guid batchId, Guid orderId, BatchStatus status)` | Report batch-prepare status. |
-| `Task SendBatchVariantExecutedResponse(Guid batchVariantId, Guid batchId, Guid orderId, RunStatus status)` | Report batch-variant run status. |
-| `Task SendOnlineModeResponse(bool onlineModeEnabled)` | Publish the machine's online mode (retained). |
-
-**Clearing retained commands:**
-
-| Method | Purpose |
-|--------|---------|
-| `Task ClearLoadOrderRequest(string orchestrator, Guid orderId)` | Remove the retained load-order command. |
-| `Task ClearPrepareBatchRequest(string orchestrator, Guid batchId)` | Remove the retained prepare-batch command. |
-| `Task ClearExecuteBatchVariantRequest(string orchestrator, Guid batchVariantId)` | Remove the retained run-variant command. |
-
-> The `orchestrator` argument is the sender name from the inbound topic; in this protocol it is the literal `orchestrator`.
+Both interfaces expose `Connect()` / `Disconnect()`; the hosted [`SiteBrokerWorker`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Services/BackgroundWorkers/SiteBrokerWorker.cs) calls `Connect()` on startup, so you normally do not call these directly.
 
 ### Event argument types
 
-```csharp
-class OrderStatusEventArgs      { Guid OrderId; string? Filename; OrderStatus Status; }
-class BatchStatusEventArgs      { Guid BatchId; Guid? OrderId; string? Variant; BatchStatus Status; }
-class RunStatusEventArgs        { Guid BatchVariantId; Guid? BatchId; Guid? OrderId; RunStatus Status; }
-class OnlineModeStatusEventArgs { string? MachineNumber; OnlineModeStatus Status; }
-```
+Definitions: [`Models/`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Models/) (`OrderStatusEventArgs`, `BatchStatusEventArgs`, `RunStatusEventArgs`, `OnlineModeStatusEventArgs`).
 
 > On the **machine** side, inbound command events carry the ids only — the `Status` field is not meaningful for a request (the machine decides the status). On the **orchestrator** side, the `Status` field carries the machine's reported status.
 
@@ -437,6 +340,8 @@ Two configuration sections are bound from `IConfiguration` (e.g. `appsettings.js
 
 ### `Mqtt` (`MqttOptions`)
 
+Full list with defaults: [`MqttOptions.cs`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Configuration/MqttOptions.cs); validation in [`ServiceExtensions.cs`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/ServiceExtensions.cs).
+
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `Hostname` | `string` | — | Set internally from `SiteBrokerOptions:Hostname`; do not configure it here. |
@@ -446,159 +351,23 @@ Two configuration sections are bound from `IConfiguration` (e.g. `appsettings.js
 | `CleanSession` | `bool` | `true` | If `false`, subscriptions and queued messages survive reconnects. |
 | `ConnectTimeoutInSeconds` | `int` | `90` | Connect wait. **Validated to be 30–600**; out-of-range throws `ValidationException`. |
 | `AutoReconnectDelay` | `TimeSpan` | `5 s` | Delay between automatic reconnect attempts. |
-| `MaxPendingMessages` | `int` | `65535` | Outbound queue size. |
-| `ReceiveMaximum` | `ushort` | `65535` | Inbound queue size. |
-| `SessionExpiryInterval` | `uint` | `uint.MaxValue` | Session lifetime when idle. |
-| `ReadMessageTimeoutInMilliseconds` | `int` | `200` | Internal receive-loop timeout. |
+
+Advanced queue/session tuning (`MaxPendingMessages`, `ReceiveMaximum`, `SessionExpiryInterval`, `ReadMessageTimeoutInMilliseconds`) defaults to sensible values — see `MqttOptions.cs`.
 
 ---
 
-## 10. Library structure (UML)
+## 10. Library structure
 
-![260222_UML_2.svg](./.attachments/260222_UML_2-fc7f4d79-1c35-49a3-a465-d7c708812a26.svg)
+The library lives in [`Applications/Sitebroker/Wup.Works.SiteBroker.Client`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/). Key types (one file each, kept as the single source of truth — read the code instead of a duplicated diagram):
 
-<details>
-<summary>PlantUML</summary>
-
-```
-@startuml Robomotion
-
-interface IMqttClientService {
-  + Connected: Event
-  + Disconnected: Event
-  + MessageReceived: Event
-  + Connect(): Task
-  + Disconnect(): Task
-  + Publish(topic: string, payload: string, retainFlag: bool, qos: int) : Task
-  + Publish(topic: string, payload: string, retainFlag: bool) : Task
-  + Publish(topic: string, payload: string, qos: int) : Task
-  + Publish(topic: string, payload: string) : Task
-  + SetLastWillMessage(lastWillMessage: MqttLastWillMessage) : Task
-  + Subscribe(topic: string, qos: int) : Task
-  + Subscribe(topic: string) : Task
-  + Unsubscribe(topic: string) : Task
-}
-
-interface ISiteBrokerClientService {
-  + LoadOrderRequested: Event
-  + PrepareBatchRequested: Event
-  + RunBatchVariantRequested: Event
-  + Connect(): Task
-  + Disconnect(): Task
-  + SendOrderLoadedResponse(orderId: Guid, orderStatus: OrderStatus): Task
-  + SendBatchPreparedResponse(batchId: Guid, orderId: Guid, batchStatus: BatchStatus): Task
-  + SendBatchVariantExecutedResponse(batchVariantId: Guid, batchId: Guid, orderId: Guid, runStatus: RunStatus): Task
-  + SendOnlineModeResponse(onlineModeEnabled: bool): Task
-
-}
-
-
-IMqttClientService <|.. MqttClientService
-
-
-class SiteBrokerClientService {
-}
-
-ISiteBrokerClientService <|.. SiteBrokerClientService
-
-class TopicHelper {
-  + GetOrderLoadTopic(machineNumber: string, orchestrator: string, orderId: string): string
-  + GetOrderLoadedTopic(machineNumber: string, orchestrator: string, orderId: string): string
-  + GetBatchPrepareTopic(machineNumber: string, orchestrator: string, batchId: string): string
-  + GetBatchPreparedTopic(machineNumber: string, orchestrator: string, batchId: string): string
-  + GetBatchVariantProduceTopic(machineNumber: string, orchestrator: string, batchVariantId: string): string
-  + GetBatchVariantProducedTopic(machineNumber: string, orchestrator: string, batchVariantId: string): string
-  + GetOnlineModeTopic(machineNumber: string, orchestrator: string)
-  + ValidateTopic(subscribedTopic: string, receivedTopic: string)
-}
-
-class MqttOptions {
-  + AutoReconnectDelay : TimeSpan
-  + CleanSession: bool
-  + ConnectTimeoutInSeconds: int
-  + Hostname: string
-  + Id: string
-  + MaxPendingMessages: int
-  + Password: string
-  + Port: int
-  + ReadMessageTimeoutInMilliseconds: int
-  + ReceiveMaximum: ushort
-  + SessionExpiryInterval: uint
-  + Username: string
-}
-
-class SiteBrokerOptions {
-  + MachineNumber: string
-  + Hostname: string
-}
-
-class OrderStatusEventArgs {
-  + OrderId: Guid
-  + Filename: string?
-}
-
-enum  OrderStatus {
-  Requested = 0
-  Preparing = 1
-  Imported = 2
-  Aborted = 3
-}
-
-ISiteBrokerClientService --> OrderStatus
-ISiteBrokerClientService --> OrderStatusEventArgs
-
-class BatchStatusEventArgs {
-  + BatchId: Guid
-  + OrderId: Guid?
-  + Variant: string?
-}
-
-enum  BatchStatus {
-  Requested = 0
-  Incomplete = 1
-  Preparing = 2
-  Ready = 3
-  Aborted = 4
-}
-
-ISiteBrokerClientService --> BatchStatus
-ISiteBrokerClientService --> BatchStatusEventArgs
-
-class RunStatusEventArgs {
-  + BatchVariantId: Guid
-  + BatchId: Guid?
-  + OrderId: Guid?
-}
-
-enum  RunStatus {
-  Requested = 0
-  Inactive = 1
-  Active = 2
-  Done = 3
-  Aborted = 4
-}
-
-ISiteBrokerClientService --> RunStatus
-ISiteBrokerClientService --> RunStatusEventArgs
-
-
-SiteBrokerClientService --> IMqttClientService
-SiteBrokerClientService --> TopicHelper
-
-MqttClientService --> MqttOptions
-SiteBrokerClientService --> SiteBrokerOptions
-
-class BackgroundService {
-}
-
-class SiteBrokerWorker {
-  + ExecuteAsync(stoppingToken: CancellationToken): Task
-}
-
-BackgroundService <|-- SiteBrokerWorker
-
-SiteBrokerWorker ..> ISiteBrokerClientService
-
-@enduml
-```
-</details>
+| Concern | Type(s) | Source |
+|---------|---------|--------|
+| Orchestrator role | `ISiteBrokerControllerService` / `SiteBrokerControllerService` | [`Interfaces/`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Interfaces/ISiteBrokerControllerService.cs), [`Services/`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Services/SiteBrokerControllerService.cs) |
+| Machine role | `ISiteBrokerClientService` / `SiteBrokerClientService` | [`Interfaces/`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Interfaces/ISiteBrokerClientService.cs), [`Services/`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Services/SiteBrokerClientService.cs) |
+| MQTT transport | `IMqttClientService` / `MqttClientService` | [`Interfaces/`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Interfaces/IMqttClientService.cs), [`Services/`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Services/MqttClientService.cs) |
+| Topic building/validation | `TopicHelper` | [`Helpers/TopicHelper.cs`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Helpers/TopicHelper.cs) |
+| Startup wiring & last-will | `ServiceExtensions.AddSiteBroker` | [`ServiceExtensions.cs`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/ServiceExtensions.cs) |
+| Hosted connect worker | `SiteBrokerWorker` | [`Services/BackgroundWorkers/`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Services/BackgroundWorkers/SiteBrokerWorker.cs) |
+| Status enums | `OrderStatus`, `BatchStatus`, `RunStatus`, `OnlineModeStatus` | [`Models/Enums/`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Models/Enums/) |
+| Event args & payload | `*StatusEventArgs`, `GenericPayloadDto` | [`Models/`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Models/) |
+| Configuration | `MqttOptions`, `SiteBrokerOptions` | [`Configuration/`](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client/Configuration/) |

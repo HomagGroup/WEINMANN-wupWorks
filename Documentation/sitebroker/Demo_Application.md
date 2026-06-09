@@ -15,13 +15,7 @@ Two .NET 8 console applications make it as easy as possible for external develop
 | `Wup.Works.SiteBroker.Client.Demo.Mes` | an MES / orchestrator that hands out jobs | `ISiteBrokerControllerService` |
 | `Wup.Works.SiteBroker.Client.Demo.Machine` | a machine that processes jobs | `ISiteBrokerClientService` |
 
-Both default to `MachineNumber = DEMO-01` so they talk to each other out of the box. The two roles and their interfaces are described in [Integration Guide §1](Integration_Guide.md#1-the-two-roles).
-
-```
- MES / Orchestrator                 SiteBroker (MQTT)                 Machine / Client
- ISiteBrokerControllerService  ── command ─────────────────────▶  ISiteBrokerClientService
- ISiteBrokerControllerService  ◀───────────────────── response ──  ISiteBrokerClientService
-```
+Both default to `MachineNumber = DEMO-01` so they talk to each other out of the box. The two roles and their interfaces are described in [Integration Guide §1](Integration_Guide.md#1-the-two-roles): the MES demo sends commands and receives responses; the machine demo does the reverse.
 
 ---
 
@@ -61,6 +55,8 @@ The same pattern works for **PrepareBatch** (`2`) and **RunBatchVariant** (`3`).
 
 ## 3. Console reference
 
+The interactive console behaviour is implemented in `ConsoleUi.cs` / `*SimulatorService.cs` of each demo project ([Demo.Mes](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client.Demo.Mes/), [Demo.Machine](../../Applications/Sitebroker/Wup.Works.SiteBroker.Client.Demo.Machine/)).
+
 ### MES demo (`Demo.Mes`)
 
 | Key | Action |
@@ -95,9 +91,7 @@ Each command has a lifecycle (`Requested -> … -> terminal`, with `Aborted` alw
 | `PrepareBatch` | `Preparing` → `Ready` | `Ready`, `Aborted` |
 | `RunBatchVariant` | `Active` → `Done` | `Done`, `Aborted` |
 
-Pressing **`[Enter]`** starts the next command and shows a lifecycle bar marking the current phase and the recommended next step. Inside the dialog press **`[Enter]`** to send the recommended status, a **number** for an explicit status, **`[i]`** to ignore (simulate a timeout at the MES), or **`[x]`** to defer (the command stays queued and keeps its phase). Intermediate statuses keep the command open and advance to the next step; a terminal status closes it and the demo automatically continues with the next queued command. For `RunBatchVariant` the demo also simulates a manual workstation by *displaying the document* (`OrderId`) it loaded from its local database (see [Manual Workstation Integration](Integration_ManualWorkstation.md)).
-
-> Taking over a command always clears its retained MQTT message (a fixed part of the flow), so it is not re-delivered on the next reconnect.
+In the per-command dialog, `[Enter]` sends the recommended status, a **number** sends an explicit status, `[i]` ignores (simulates an MES timeout) and `[x]` defers (keeps the command queued). Intermediate statuses advance the lifecycle; a terminal status closes the command and the demo continues with the next one. For `RunBatchVariant` the demo also simulates a manual workstation by displaying the document (`OrderId`) from its local database (see [Manual Workstation Integration](Integration_ManualWorkstation.md)). Taking over a command always clears its retained MQTT message.
 
 ---
 
