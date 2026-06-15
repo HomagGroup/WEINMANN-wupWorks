@@ -540,7 +540,7 @@ Common parameter meaning:
 |by|float|Panel width in Y direction.|
 |hz|float|Panel thickness / height in Z direction.|
 |x, y|float|Panel insertion position in element coordinates.|
-|z|float|Panel Z position. If omitted, value is calculated by layer logic.|
+|z|float|Optional panel Z position. If z is explicitly specified, sign convention applies: PLI z must be positive, PLA z must be negative. If omitted, value is calculated by layer logic.|
 |i|uint|Material index.|
 |name|string|Panel name / designation.|
 
@@ -557,6 +557,7 @@ Rules and behavior:
 | Topic | Rule |
 |:---|:---|
 |Optional z in older versions|Parameter [z] was optional up to interface version 3.3.|
+|z sign convention by panel side|If optional parameter z is explicitly specified: PLI must use positive z values, PLA must use negative z values.|
 |Polygon priority|If polygon points are defined for PLI/PLA, polygon geometry has priority over lx/by. The polygon must be closed (first and last point must be identical).|
 |Planarity|All polygon points of one panel must lie in exactly one plane (no warped panel).|
 |Layer height|If different panel heights exist in one layer, the thickest panel defines the full layer height.|
