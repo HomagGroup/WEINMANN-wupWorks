@@ -15,4 +15,11 @@ public sealed class SiteBrokerOptions
     /// </summary>
     public string Hostname { get; set; }
 
+    /// <summary>
+    /// When <c>true</c> (default), the data consumer subscribes to the data of all machines
+    /// (<c>+/data/#</c>). When <c>false</c>, it only subscribes to the data of
+    /// <see cref="MachineNumber"/>.
+    /// </summary>
+    public bool SubscribeToAllMachinesData { get; set; } = true;
+
 }

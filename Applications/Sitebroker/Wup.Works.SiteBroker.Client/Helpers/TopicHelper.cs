@@ -1,4 +1,7 @@
-﻿namespace Wup.Works.SiteBroker.Client.Helpers;
+﻿using Wup.Works.SiteBroker.Client.Models;
+using Wup.Works.SiteBroker.Client.Models.Enums;
+
+namespace Wup.Works.SiteBroker.Client.Helpers;
 
 public static class TopicHelper
 {
@@ -71,6 +74,72 @@ public static class TopicHelper
     /// <returns>The topic name</returns>
     public static string GetOnlineModeTopic(string machineNumber, string orchestrator)
         => $"{machineNumber}/{orchestrator}/settings/online-mode";
+
+    #region Data channel
+
+    /// <summary>
+    /// Get the topic of a single-value data signal
+    /// (<c>{MachineNumber}/data/{Category}/{Signal}</c>).
+    /// </summary>
+    public static string GetDataTopic(string machineNumber, DataCategory category, DataSignal signal)
+        => $"{machineNumber}/{Constants.DataNamespace}/{category.ToTopicSegment()}/{signal.ToTopicSegment()}";
+
+    /// <summary>
+    /// Get the topic of one entry of an indexed data signal group
+    /// (<c>{MachineNumber}/data/{Category}/{Group}/{Key}</c>).
+    /// </summary>
+    public static string GetDataIndexedTopic(string machineNumber, DataCategory category, DataGroup group, string key)
+        => $"{machineNumber}/{Constants.DataNamespace}/{category.ToTopicSegment()}/{group.ToTopicSegment()}/{key}";
+
+    /// <summary>
+    /// Get the topic of one property of an indexed data entry
+    /// (<c>{MachineNumber}/data/{Category}/{Group}/{Key}/{Property}</c>).
+    /// </summary>
+    public static string GetDataPropertyTopic(string machineNumber, DataCategory category, DataGroup group, string key, StorageProperty property)
+        => $"{machineNumber}/{Constants.DataNamespace}/{category.ToTopicSegment()}/{group.ToTopicSegment()}/{key}/{property.ToTopicSegment()}";
+
+    /// <summary>
+    /// Get the subscription topic covering the whole data subtree of a machine.
+    /// Pass <see cref="Constants.Wildcard"/> as the machine number to cover all machines.
+    /// </summary>
+    public static string GetDataSubscriptionTopic(string machineNumber)
+        => $"{machineNumber}/{Constants.DataNamespace}/{Constants.MultiLevelWildcard}";
+
+    /// <summary>
+    /// Try to decompose a received data topic into its parts. Returns <c>false</c> for
+    /// topics that do not belong to the data channel.
+    /// </summary>
+    /// <param name="topic">The received (wildcard-free) topic.</param>
+    /// <param name="parsed">The decomposed topic when parsing succeeds.</param>
+    public static bool TryParseDataTopic(string topic, out ParsedDataTopic parsed)
+    {
+        parsed = null;
+
+        if (string.IsNullOrEmpty(topic))
+            return false;
+
+        var parts = topic.Split('/');
+
+        // Valid forms: 4 (single value), 5 (indexed entry) or 6 (indexed property) segments.
+        if (parts.Length is < 4 or > 6)
+            return false;
+
+        if (!parts[1].Equals(Constants.DataNamespace, StringComparison.InvariantCultureIgnoreCase))
+            return false;
+
+        parsed = new ParsedDataTopic
+        {
+            MachineNumber = parts[0],
+            Category = parts[2],
+            Name = parts[3],
+            Key = parts.Length >= 5 ? parts[4] : null,
+            Property = parts.Length == 6 ? parts[5] : null
+        };
+
+        return true;
+    }
+
+    #endregion Data channel
 
     /// <summary>
     /// Validate if a topic name matched with the subscribed topic name containing wildcards.

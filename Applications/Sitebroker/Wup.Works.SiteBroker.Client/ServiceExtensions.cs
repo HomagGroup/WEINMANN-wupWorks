@@ -67,6 +67,20 @@ public static class ServiceExtensions
             return siteBrokerControllerService;
         });
 
+        services.AddSingleton<ISiteBrokerDataPublisher, SiteBrokerDataPublisherService>(provider =>
+        {
+            var mqttClient = provider.GetRequiredService<IMqttClientService>();
+
+            return new SiteBrokerDataPublisherService(mqttClient, siteBrokerOptions);
+        });
+
+        services.AddSingleton<ISiteBrokerDataConsumer, SiteBrokerDataConsumerService>(provider =>
+        {
+            var mqttClient = provider.GetRequiredService<IMqttClientService>();
+
+            return new SiteBrokerDataConsumerService(mqttClient, siteBrokerOptions);
+        });
+
         services.AddHostedService<SiteBrokerWorker>();
 
         return services;

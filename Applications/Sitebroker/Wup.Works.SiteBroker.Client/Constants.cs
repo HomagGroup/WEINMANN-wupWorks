@@ -17,4 +17,22 @@ public static class Constants
     public const string Filename = "Filename";
 
     public const string Variant = "Variant";
+
+    #region Data channel
+
+    /// <summary>
+    /// Fixed namespace segment of every machine data topic.
+    /// </summary>
+    public const string DataNamespace = "data";
+
+    /// <summary>
+    /// Multi-level MQTT wildcard, used to subscribe to whole data subtrees.
+    /// </summary>
+    public const string MultiLevelWildcard = "#";
+
+    // Payload value types.
+    public const string TypeNumber = "number";
+    public const string TypeString = "string";
+
+    #endregion Data channel
 }

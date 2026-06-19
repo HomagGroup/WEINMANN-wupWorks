@@ -19,6 +19,7 @@ internal sealed class MachineSimulatorService : BackgroundService
     private static readonly TimeSpan StartupDelay = TimeSpan.FromMilliseconds(750);
 
     private readonly ISiteBrokerClientService _client;
+    private readonly ISiteBrokerDataPublisher _data;
     private readonly IHostApplicationLifetime _lifetime;
     private readonly ILogger<MachineSimulatorService> _logger;
 
@@ -32,11 +33,13 @@ internal sealed class MachineSimulatorService : BackgroundService
 
     public MachineSimulatorService(
         ISiteBrokerClientService client,
+        ISiteBrokerDataPublisher data,
         IConfiguration configuration,
         IHostApplicationLifetime lifetime,
         ILogger<MachineSimulatorService> logger)
     {
         _client = client;
+        _data = data;
         _lifetime = lifetime;
         _logger = logger;
 
@@ -107,6 +110,9 @@ internal sealed class MachineSimulatorService : BackgroundService
                         break;
                     case "u":
                         await SendUnsolicitedResponse();
+                        break;
+                    case "d":
+                        await PublishDemoData();
                         break;
                     case "l":
                         ListPending();
@@ -564,6 +570,70 @@ internal sealed class MachineSimulatorService : BackgroundService
         }
     }
 
+    private async Task PublishDemoData()
+    {
+        ConsoleUi.Write(
+            "\nPublish machine data:\n" +
+            "  [1] State = Working      [2] State = Idle        [3] State = Error\n" +
+            "  [4] Parts +1             [5] Cycles +1           [6] Meter +12.5\n" +
+            "  [7] Program = 'P-4711'   [8] Set error entry     [9] Clear error entry\n" +
+            "  [s] Storage fill level   [Enter] Cancel",
+            ConsoleColor.White);
+
+        var choice = ConsoleUi.Prompt("DATA> ");
+        switch (choice?.Trim().ToLowerInvariant())
+        {
+            case "1":
+                await _data.PublishMachineState(MachineState.Working);
+                ConsoleUi.Success("-> state = Working (3)");
+                break;
+            case "2":
+                await _data.PublishMachineState(MachineState.Idle);
+                ConsoleUi.Success("-> state = Idle (2)");
+                break;
+            case "3":
+                await _data.PublishMachineState(MachineState.Error);
+                ConsoleUi.Success("-> state = Error (4)");
+                break;
+            case "4":
+                await _data.PublishParts(++_parts);
+                ConsoleUi.Success($"-> parts = {_parts}");
+                break;
+            case "5":
+                await _data.PublishCycles(++_cycles);
+                ConsoleUi.Success($"-> cycles = {_cycles}");
+                break;
+            case "6":
+                _meter += 12.5;
+                await _data.PublishMeter(_meter);
+                ConsoleUi.Success($"-> meter = {_meter}");
+                break;
+            case "7":
+                await _data.PublishProgram("P-4711");
+                ConsoleUi.Success("-> program = P-4711");
+                break;
+            case "8":
+                await _data.PublishError("E-1042", "Vacuum too low");
+                ConsoleUi.Success("-> error[E-1042] = 'Vacuum too low'");
+                break;
+            case "9":
+                await _data.RemoveIndexed(DataCategory.Machine, DataGroup.Error, "E-1042");
+                ConsoleUi.Success("-> error[E-1042] cleared (empty retained payload)");
+                break;
+            case "s":
+                await _data.PublishStorage("S1", currentAmount: 42, maxAmount: 100, currentMaterialType: "PUR-Glue");
+                ConsoleUi.Success("-> storage[S1] = 42/100, material PUR-Glue");
+                break;
+            default:
+                ConsoleUi.Info("Cancelled.");
+                break;
+        }
+    }
+
+    private long _parts;
+    private long _cycles;
+    private double _meter;
+
     private void PrintHeader()
     {
         ConsoleUi.Write(
@@ -594,6 +664,7 @@ internal sealed class MachineSimulatorService : BackgroundService
             "  [Enter] Process the next queued job in guided mode\n" +
             $"  [o]     Toggle online mode       (currently: {(_online ? "Online" : "Offline")})\n" +
             "  [l]     Show open jobs\n" +
+            "  [d]     Publish machine data (state / counters / error / storage)\n" +
             "  [u]     Error case: send an unsolicited/foreign response\n" +
             "  [q]     Quit",
             ConsoleColor.White);

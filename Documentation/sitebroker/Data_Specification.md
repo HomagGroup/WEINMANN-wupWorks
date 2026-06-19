@@ -42,7 +42,7 @@ The model is intentionally minimal for a first step:
 | Aspect | Command interface ([spec](Interface_Specification.md)) | Data interface (this document) |
 |--------|--------------------------------------------------------|-------------------------------------|
 | Direction | Bidirectional (request → response) | Unidirectional (client → consumers) |
-| Topic shape | `{Sender}/{Receiver}/{Resource}/{Id}/{Action}` | `{MachineNumber}/data/{Category}/{Signal}` (single value), `{MachineNumber}/data/{Category}/{Group}/{Key}` (indexed) or `{MachineNumber}/data/{Category}/{Group}/{Key}/{Property}` (indexed entry with several properties) |
+| Topic shape | `{Sender}/{Receiver}/{Resource}/{Id}/{Action}` | `{MachineNumber}/data/{Category}/{Signal}` (single value) or `{MachineNumber}/data/{Category}/{Group}/{Key}/{Property}` (indexed entry with several properties) |
 | Correlation id | Yes (4th topic segment) | None — data is state, not a transaction |
 | Receiver | A named `orchestrator` | A fixed `data` namespace (broadcast) |
 | Payload | `GenericPayloadDto` (`Status` + `AdditionalProperties`) | Single-value envelope  |
@@ -52,11 +52,10 @@ The model is intentionally minimal for a first step:
 
 ## 3. Topic structure
 
-Every signal is published to its own topic. There are three topic forms — a **single-value signal**, an **indexed signal group** that can hold several concurrent entries, and an indexed entry that exposes **several properties** (see [§6](#6-defined-machine-data)):
+Every signal is published to its own topic. There are three topic forms — a **single-value signal** and an indexed entry that exposes **several properties** (see [§6](#6-defined-machine-data)):
 
 ```
 {MachineNumber}/data/{Category}/{Signal}                   # single-value signal
-{MachineNumber}/data/{Category}/{Group}/{Key}              # indexed signal group (one value per entry)
 {MachineNumber}/data/{Category}/{Group}/{Key}/{Property}   # indexed entry with several properties
 ```
 
@@ -101,7 +100,6 @@ All data payloads use the same minimal **single-value envelope** (JSON):
   "type": "string",                                        // The value type (number or string)
   "value": "Lore ipsum",                                   // the signal value (string)
   "timestampUtc": "2026-06-14T10:22:33.512Z",              // ISO 8601, machine-side capture time
-  "batchVariantId": "770e8400-e29b-41d4-a716-446655440002" // The guid of the batch variant
 }
 ```
 
@@ -110,7 +108,6 @@ All data payloads use the same minimal **single-value envelope** (JSON):
 | `value` | string | ✅ | The current value of the signal addressed by the topic. |
 | `type` | string | ✅ | The current type of the signal addressed by the topic. |
 | `timestampUtc` | string (ISO 8601, UTC) | ✅ | When the value was captured **on the machine**. |
-| `batchVariantId` | string |  | Execution ID. Used when data is related to a batch variant. |
 
 > **Clearing / removal.** A topic is cleared by publishing an **empty** payload (`""`) instead of the envelope above (see [§6](#6-defined-machine-data) and [Interface & Method Specification §7](Interface_Specification.md#7-clear-mechanism-retained-messages)). A consumer must treat an empty retained payload as *"signal/entry removed"*, not as a value.
 
@@ -163,10 +160,10 @@ Beyond the single-value signals above, the `machine` category also carries **ind
 
 | Topic | Group | Meaning |
 |-------|-------|---------|
-| `{MachineNumber}/data/machine/error/{key}` | error | An error, one topic per error `{key}` (e.g. error code) |
-| `{MachineNumber}/data/machine/warning/{key}` | warning | A warning, one topic per warning `{key}` |
-| `{MachineNumber}/data/machine/maintenance/{key}` | maintenance | A maintenance cycle, one topic per maintenance `{key}` |
-| `{MachineNumber}/data/machine/action/{key}` | action | An action, one topic per action `{key}` |
+| `{MachineNumber}/data/machine/error/{key}/description` | error | An error, one topic per error `{key}` (e.g. error code) |
+| `{MachineNumber}/data/machine/warning/{key}/description` | warning | A warning, one topic per warning `{key}` |
+| `{MachineNumber}/data/machine/maintenance/{key}/description` | maintenance | A maintenance cycle, one topic per maintenance `{key}` |
+| `{MachineNumber}/data/machine/action/{key}/description` | action | An action, one topic per action `{key}` |
 | `{MachineNumber}/data/machine/storage/{key}/{property}` | storage | A material store, one entry per storage `{key}` with several properties (see below) |
 
 `{key}` identifies the individual entry within the group (e.g. the error code). In the payload ([§4](#4-payload-format)) `value` carries the entry's detail (e.g. the error/warning text, the maintenance-due value or the action description) and `type` its value type. A consumer subscribes to a whole group with the MQTT single-level wildcard `+`, e.g. `{MachineNumber}/data/machine/error/+`. Like every other data topic these are retained.
@@ -189,17 +186,18 @@ Because a `storage` entry spans several property topics, the empty-payload remov
 
 ## 7. Defined batch-variant data
 
-Order-related data for the currently executing batch variant. Each value is its own retained topic under the `batch-variant` category; the variant the values belong to is carried in the payload via `batchVariantId` ([§4](#4-payload-format)).
+Order-related data for the currently executing batch variant. Each value is its own retained topic under the `batch-variant` category. The id of the variant the values belong to is **not** carried in the payload; it is published as its own signal under `{MachineNumber}/data/batch-variant/current/id` and can be read from there.
 
 | Signal | Topic | Type | Meaning |
 |--------|-------|------|---------|
-| `state` | `{MachineNumber}/data/batch-variant/state` | number | Execution state: 1 Inactive, 2 Active, 3 Done, 4 Aborted (same values as `RunStatus`) |
-| `progress` | `{MachineNumber}/data/batch-variant/progress` | number | Progress of the variant in percent (0–100) |
-| `meter` | `{MachineNumber}/data/batch-variant/meter` | number | Meters processed for this variant |
-| `started` | `{MachineNumber}/data/batch-variant/started` | string | Start timestamp (ISO 8601, UTC) |
-| `finished` | `{MachineNumber}/data/batch-variant/finished` | string | End timestamp (ISO 8601, UTC) |
+| `id` | `{MachineNumber}/data/batch-variant/current/id` | string | The batch variant id of the current job. |
+| `state` | `{MachineNumber}/data/batch-variant/current/state` | number | Execution state: 1 Inactive, 2 Active, 3 Done, 4 Aborted (same values as `RunStatus`) |
+| `progress` | `{MachineNumber}/data/batch-variant/current/progress` | number | Progress of the variant in percent (0–100) |
+| `meter` | `{MachineNumber}/data/batch-variant/current/meter` | number | Meters processed for this variant |
+| `started` | `{MachineNumber}/data/batch-variant/current/started` | string | Start timestamp (ISO 8601, UTC) |
+| `finished` | `{MachineNumber}/data/batch-variant/current/finished` | string | End timestamp (ISO 8601, UTC) |
 
-As with all data topics these are published on change and retained. Because the values describe the current variant, `batchVariantId` in the payload tells consumers which execution they belong to.
+As with all data topics these are published on change and retained. Because the values describe the current variant, the `current/id` topic tells consumers which execution they belong to — a consumer reads it (or watches it for changes) to correlate the other `current/*` values.
 
 ---
 
@@ -216,14 +214,14 @@ Only `key` stays a free string, because keys are dynamic identifiers (error code
 
 ```csharp
 // Single-value signal, e.g. (DataCategory.Machine, DataSignal.State, "3", "number")
-Task PublishSignal(DataCategory category, DataSignal signal, string value, string type, Guid? batchVariantId = null);
+Task PublishSignal(DataCategory category, DataSignal signal, string value, string type);
 
 // One entry of an indexed group, e.g. (DataCategory.Machine, DataGroup.Error, "E-1042", "Vacuum too low", "string")
-Task PublishIndexed(DataCategory category, DataGroup group, string key, string value, string type, Guid? batchVariantId = null);
+Task PublishIndexed(DataCategory category, DataGroup group, string key, string value, string type);
 
 // One property of an indexed entry that exposes several values,
 // e.g. (DataCategory.Machine, DataGroup.Storage, "S1", StorageProperty.CurrentAmount, "42", "number")
-Task PublishIndexedProperty(DataCategory category, DataGroup group, string key, StorageProperty property, string value, string type, Guid? batchVariantId = null);
+Task PublishIndexedProperty(DataCategory category, DataGroup group, string key, StorageProperty property, string value, string type);
 
 // Remove an indexed entry by publishing an empty retained payload (e.g. error resolved)
 Task RemoveIndexed(DataCategory category, DataGroup group, string key);
@@ -236,7 +234,8 @@ Task RemoveIndexedProperty(DataCategory category, DataGroup group, string key, S
 Typed convenience helpers wrap the generic methods, e.g. `PublishMachineState(MachineState)`,
 `PublishParts(long)`, `PublishProgram(string)`, `PublishError(key, text)`,
 `PublishStorage(key, currentAmount, maxAmount, currentMaterialType)` and the
-`PublishBatchVariant*` helpers.
+`PublishBatchVariant*` helpers (including `PublishBatchVariantId(string)` for the
+`batch-variant/current/id` topic).
 
 ### Consumer side — `ISiteBrokerDataConsumer`
 
@@ -246,8 +245,9 @@ event EventHandler<DataEventArgs> DataReceived;
 ```
 
 `DataEventArgs` carries `MachineNumber`, `Category`, `Name` (the signal or group), `Key`, the optional
-`Property`, `Value`, `Type`, `TimestampUtc`, the optional `BatchVariantId` and a `Removed` flag — the
+`Property`, `Value`, `Type`, `TimestampUtc` and a `Removed` flag — the
 raw wire strings. It additionally exposes the parsed enums `CategoryValue`, `SignalValue`, `GroupValue`
-and `PropertyValue` (each `null` for an unknown segment). Topic building extends `TopicHelper` with
+and `PropertyValue` (each `null` for an unknown segment). The batch variant id is no longer part of the
+payload; consumers read it from the `batch-variant/current/id` signal like any other data topic. Topic building extends `TopicHelper` with
 `GetDataTopic(machineNumber, category, signal)`, an indexed overload `(…, group, key)` and a property
 overload `(…, group, key, property)`.

@@ -22,6 +22,7 @@ internal sealed class MesSimulatorService : BackgroundService
     private static readonly TimeSpan TimeoutPollInterval = TimeSpan.FromSeconds(2);
 
     private readonly ISiteBrokerControllerService _controller;
+    private readonly ISiteBrokerDataConsumer _dataConsumer;
     private readonly IHostApplicationLifetime _lifetime;
     private readonly ILogger<MesSimulatorService> _logger;
 
@@ -33,11 +34,13 @@ internal sealed class MesSimulatorService : BackgroundService
 
     public MesSimulatorService(
         ISiteBrokerControllerService controller,
+        ISiteBrokerDataConsumer dataConsumer,
         IConfiguration configuration,
         IHostApplicationLifetime lifetime,
         ILogger<MesSimulatorService> logger)
     {
         _controller = controller;
+        _dataConsumer = dataConsumer;
         _lifetime = lifetime;
         _logger = logger;
 
@@ -49,6 +52,7 @@ internal sealed class MesSimulatorService : BackgroundService
         _controller.BatchPreparedResponse += OnBatchPrepared;
         _controller.BatchVariantExecutedResponse += OnBatchVariantExecuted;
         _controller.OnlineModeChangedResponse += OnOnlineModeChanged;
+        _dataConsumer.DataReceived += OnDataReceived;
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -67,6 +71,7 @@ internal sealed class MesSimulatorService : BackgroundService
         _controller.BatchPreparedResponse -= OnBatchPrepared;
         _controller.BatchVariantExecutedResponse -= OnBatchVariantExecuted;
         _controller.OnlineModeChangedResponse -= OnOnlineModeChanged;
+        _dataConsumer.DataReceived -= OnDataReceived;
 
         return base.StopAsync(cancellationToken);
     }
@@ -327,6 +332,22 @@ internal sealed class MesSimulatorService : BackgroundService
         }
 
         ConsoleUi.Incoming($"<- Online mode of machine {e.MachineNumber}: {e.Status}");
+    }
+
+    private void OnDataReceived(object? sender, DataEventArgs e)
+    {
+        var address = e.IsIndexed
+            ? $"{e.Category}/{e.Name}/{e.Key}{(e.Property != null ? "/" + e.Property : string.Empty)}"
+            : $"{e.Category}/{e.Name}";
+
+        if (e.Removed)
+        {
+            ConsoleUi.Incoming($"<- Data {e.MachineNumber} {address}: <removed>");
+            return;
+        }
+
+        var variant = e.BatchVariantId.HasValue ? $" (batchVariant {e.BatchVariantId})" : string.Empty;
+        ConsoleUi.Incoming($"<- Data {e.MachineNumber} {address} = {e.Value} [{e.Type}]{variant}");
     }
 
     private void HandleResponse(Guid id, string statusText, bool isTerminal, string message)
