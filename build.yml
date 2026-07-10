@@ -1,0 +1,49 @@
+trigger:
+  branches:
+    include:
+    - master
+  tags:
+    include:
+    - release/*
+
+parameters:
+- name: release_type
+  displayName: 'Do the changes since the last release day result in a feature or patch release?'
+  type: string
+  default: 'No Release'
+  values:
+  - 'Bugfix Release'
+  - 'No Release'
+
+resources:
+  repositories:
+  - repository: templates
+    type: git
+    name: OneHomag/SWC-DevOps-HoT
+    ref: release/3
+  - repository: cesTemplates
+    type: git
+    name: OneHomag/CES-WM_Provisioning
+    ref: master
+
+stages:
+
+- template: Pipelines/general_preparation.yaml@cesTemplates
+  parameters:
+    release_type: ${{ parameters.release_type }}
+
+- template: software-composition-analysis/template.yml@templates
+  parameters:
+    dependsOn:
+    - general_preparation_stage
+    fully_qualifed_package_name: HomagGroup.CES.Weinmann.WupWorks.SiteBroker.Client
+    restore_tool: dotnet
+    visual_studio_solution_file: $(Build.SourcesDirectory)/Applications/Sitebroker/Wup.Works.SiteBroker.slnx
+    package_version: $[stageDependencies.general_preparation_stage.version_handling_job.outputs['Calculation.Version']]
+    build_breaker_mode: info
+
+- template: pipelines/build_packages.yaml
+  parameters:
+    dependsOn:
+    - general_preparation_stage
+    - software_composition_analysis_stage

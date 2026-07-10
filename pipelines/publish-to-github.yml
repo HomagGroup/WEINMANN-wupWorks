@@ -1,0 +1,75 @@
+# Publishes the public release to GitHub.
+#
+# Flow:
+#   1. A PR is opened from `master` -> `release/public` (on Azure DevOps).
+#   2. When that PR completes, the merge commit lands on `release/public`.
+#   3. That push triggers this pipeline (CI trigger below).
+#   4. The pipeline publishes the release/public *file state* as a single
+#      squashed commit appended on top of the GitHub `main` branch.
+#      Internal DevOps history is not exposed; main keeps a linear,
+#      growing public history (one commit per release).
+#
+# Required pipeline variables:
+#   GH_PAT        - a GitHub Personal Access Token of your personal account,
+#                   with write (contents) access to
+#                   HomagGroup/WEINMANN-wupWorks (secret)
+#   GH_USER       - your personal GitHub username (used for the authenticated
+#                   push URL and as the git committer/author name)
+#   GH_USER_EMAIL - the email of your personal GitHub account (used as the
+#                   git committer/author email)
+
+trigger:
+  branches:
+    include:
+      - release/public
+
+# Trigger pipeline when commits are pushed to release/public, but not when PRs are opened or updated.
+# This is ignored by default, but for clarity / convention with general pipeline triggers in other repos / projects, set it to none here.
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: CES_WM-CI
+  - name: githubRepo
+    value: github.com/HomagGroup/WEINMANN-wupWorks
+  - name: targetBranch
+    value: main
+
+steps:
+  - checkout: self
+    fetchDepth: 1
+
+  - script: |
+      set -euo pipefail
+
+      REMOTE="https://${GH_USER}:${GH_PAT}@$(githubRepo)"
+
+      git config user.email "${GH_USER_EMAIL}"
+      git config user.name  "${GH_USER}"
+
+      # Find the current tip of GitHub's main branch; the snapshot
+      # commit is parented on it so the push is a plain fast-forward append.
+      PARENT_ARGS=""
+      if git fetch --no-tags "$REMOTE" "$(targetBranch)"; then
+        PARENT=$(git rev-parse FETCH_HEAD)
+        PARENT_ARGS="-p $PARENT"
+        echo "Existing main tip: $PARENT"
+      else
+        echo "main does not exist yet; creating it."
+      fi
+
+      # Build a single commit whose tree is exactly the release/public tree.
+      TREE=$(git rev-parse "HEAD^{tree}")
+      MSG="Release snapshot from release/public @ $(git rev-parse --short HEAD)"
+      COMMIT=$(git commit-tree "$TREE" $PARENT_ARGS -m "$MSG")
+      echo "Created snapshot commit: $COMMIT"
+
+      # Fast-forward append onto main (no force).
+      git push "$REMOTE" "$COMMIT:refs/heads/$(targetBranch)"
+    displayName: Publish squashed snapshot -> GitHub main
+    env:
+      GH_PAT: $(GH_PAT)
+      GH_USER: $(GH_USER)
+      GH_USER_EMAIL: $(GH_USER_EMAIL)

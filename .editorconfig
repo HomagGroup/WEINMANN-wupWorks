@@ -1,0 +1,7 @@
+root = true
+
+[*.cs]
+# Team styleguide: do not use primary constructors (see wiki Decisions/C-Sharp-Styleguide.md).
+# Tell the analyzer we prefer conventional constructors and silence the IDE0290 suggestion.
+csharp_style_prefer_primary_constructors = false
+dotnet_diagnostic.IDE0290.severity = none

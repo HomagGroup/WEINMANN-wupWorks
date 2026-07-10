@@ -1,0 +1,91 @@
+parameters:
+- name: dependsOn
+  type: object
+  default: []
+
+stages:
+- stage: build_packages_stage
+  displayName: 'Build wupWorks site broker client stage'
+  dependsOn: ${{ parameters.dependsOn }}
+  pool:
+    vmImage: 'windows-latest'
+
+  jobs:
+  - job: build_server_job
+    displayName: "Build wupWorks site broker client job"
+    
+    variables:
+      buildPlatform: 'Any CPU'
+      buildConfiguration: 'Release'
+      solution: '**/*.slnx'
+      project: '**/Wup.Works.SiteBroker.Client.csproj'
+      version: $[stageDependencies.general_preparation_stage.version_handling_job.outputs['Calculation.Version']]
+
+    steps:
+    - checkout: self
+      displayName: 'Checkout recursively'
+
+    - task: UseDotNet@2
+      displayName: 'Install .NET Core SDK'
+      inputs:
+        version: 8.x
+
+    - task: NuGetAuthenticate@1
+      displayName: 'NuGet authentication'
+
+    - task: NuGetToolInstaller@1
+      name: 'NuGetToolInstaller'
+      displayName: 'NuGet tool installer'
+ 
+    - task: NuGetCommand@2
+      name: 'NuGetRestore'
+      displayName: 'NuGet restore packages'
+      inputs:
+        command: 'restore'
+        restoreSolution: '$(solution)'
+        feedsToUse: 'config'
+
+    - task: SonarQubePrepare@6
+      inputs:
+        SonarQube: 'SonarQube Enterprise'
+        scannerMode: 'MSBuild'
+        projectKey: 'HomagGroup.CES.Weinmann.WupWorks.SiteBroker.Client'
+        projectName: 'HomagGroup.CES.Weinmann.WupWorks.SiteBroker.Client'
+        projectVersion: '$(version)'
+        extraProperties: |
+          sonar.exclusions=**/AssemblyInfo.cs,**/Resources.Designer.cs
+          sonar.cpd.exclusions=**/AssemblyInfo.cs,**/Resources.Designer.cs
+          sonar.cs.vstest.reportsPaths=$(Agent.TempDirectory)/*.trx
+          sonar.cs.opencover.reportsPaths=$(Agent.TempDirectory)/*/coverage.opencover.xml
+
+    - task: DotNetCoreCLI@2
+      name: 'Build'
+      displayName: 'Build project using version and profile'
+      inputs:
+        command: 'build'
+        projects: '$(project)'
+        arguments: '--configuration $(BuildConfiguration) /p:VersionPrefix="$(version)"'
+   
+    - task: DotNetCoreCLI@2
+      name: 'Publish'
+      displayName: 'Publish project using version and profile'
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        projects: '$(project)'
+        arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory) /p:VersionPrefix="$(version)"'
+        zipAfterPublish: false
+
+    - task: SonarQubeAnalyze@6
+
+    - task: SonarQubePublish@6
+      inputs:
+        pollingTimeoutSec: '300'
+
+    - task: NuGetCommand@2
+      displayName: 'Push nuget packages to Azure Artifacts'
+      inputs:
+        command: 'push'
+        packagesToPush: '**/*.nupkg'
+        nuGetFeedType: 'internal'
+        publishVstsFeed: 'Development'

@@ -46,7 +46,7 @@ img{max-width:100%; height:auto;}
   <tr><td class="toc-left toc-indent-1"><a href="#4.1-file-header">4.1 File header</a></td><td class="toc-right">24</td></tr>
   <tr><td class="toc-left toc-indent-1"><a href="#4.2-components">4.2 Components</a></td><td class="toc-right">26</td></tr>
   <tr><td class="toc-left toc-indent-2"><a href="#4.2.1-single-components-single-bars">4.2.1 Single components, single bars</a></td><td class="toc-right">26</td></tr>
-  <tr><td class="toc-left toc-indent-2"><a href="#4.2.2-panels-and-shuttering">4.2.2 Panels</a></td><td class="toc-right">30</td></tr>
+  <tr><td class="toc-left toc-indent-2"><a href="#4.2.2-boards">4.2.2 Panels</a></td><td class="toc-right">30</td></tr>
   <tr><td class="toc-left toc-indent-2"><a href="#4.2.3-unprocessed-parts">4.2.3 Unprocessed parts</a></td><td class="toc-right">32</td></tr>
   <tr><td class="toc-left toc-indent-2"><a href="#4.2.4-modules">4.2.4 Modules</a></td><td class="toc-right">33</td></tr>
   <tr><td class="toc-left toc-indent-1"><a href="#4.3-spatial-processing-plane">4.3 Spatial processing plane</a></td><td class="toc-right">34</td></tr>
@@ -126,13 +126,16 @@ The file must be available in MS-DOS text format. Line break: CR/LF (# 0D0A).
 Permissible codings are: ASCII and UTF-16 (BMP, LITTLE ENDIAN).
 
 
-- File header: VERSION, ANR, ELB, ELN, ZNR, REIHE, ELA, ELM, WNP, CAD, CADRE- LEASE
+- File header: VERSION, ELEMENTID, CADDOKUMENTID, ANR, ELB, ELN, ZNR, (deprecated) ELA, ELM, CAD, CADRELEASE, BEARBEITER, BAUVORHABEN, KUNDENNAME, OBJEKT, ORT
 	- Optional: definition of unprocessed parts: RT
 		- (A) Definition of components of the frame work, introduced by the definition of a component: UG, OG, LS, QS, BT4, BT6, EBT, BTn
 			- Attributes of a component: PROPERTY
+			- Identification of a component: MODELLREF, CADMODELLREF and TEILENR
 			- Component processing steps: UNIT, SG, PSG, TA, KN, MPL, PAF, PZF, PSF, SZ
 			- Spatial processing plane RBE2, followed by component processing steps
 		- (B) Definition of component positions, introduced by the definition of layered components of the same type: PLI0...PLI10, PLA0...PLA10
+  		- Attributes of a component: PROPERTY
+  		- Identification of a component: MODELLREF, CADMODELLREF and TEILENR
 			- Layer processing steps: UNIT, PSG, PAF, PSF, NR, NBR, PSZ, PML, PAL, KN
 			- Spatial processing plane RBE2, followed by the corresponding processing steps
 		- (C) Definition of modules: MODUL, ENDMODUL
@@ -143,9 +146,7 @@ Multiple specifications of definitions of the categories (A), (B), or (C) are po
 
 The definition of a category is completed by the definition of a new category.
 
-![File Structure Overview](Interface_version_3_7_images/file_structure_2_1.svg)
 
----
 
 <h3 id="2.2-general-syntaxvalue-ranges">2.2 General syntax/value ranges</h3>
 
@@ -329,7 +330,7 @@ New parameters added are always located at the end of the parameter set. They ne
 
 - Introduction of the Z ordinate for: OG, UG, LS, QS, EBT, BT4, BT6, PLI, PLA, SLI, SLA, MODUL
 - Component name is no longer optional for: OG, UG, LS, QS, EBT, BT4, BT6, PLI, PLA, SLI, SLA
-- Introduction of the tilt angle Î² for SG
+- Introduction of the tilt angle for SG
 - Change for NC
 - The keywords PAF and PSG are also valid for beam processing
 - Expansion of the polygon trimming line and the polygon saw cut around the reference plane for beam processing.
@@ -392,7 +393,7 @@ New parameters added are always located at the end of the parameter set. They ne
 
 
 - Removal: 
-  - of the already aborted header keyword: WNP
+  - of the already aborted header keyword: WNP, REIHE
   - of SLI and SLA
   - of the already aborted keyword for component processing steps: KER, BOZ, BOY, BOX, FRZ, FRY, PFZ and PFY
   - of the already aborted keyword for panel processing steps: BOZ
@@ -523,14 +524,14 @@ Exceptions:, < > : # $ % = ; ! \ |
 
 ---
 
-<h4 id="4.2.2-panels-and-shuttering">4.2.2 Panels t.b.d check: Panel, board, board sheating. Panel means the whole element? ELM</h4>
+<h4 id="4.2.2-boards">4.2.2 Panels</h4>
 
 The start of a panel definition opens a component position. It ends when a new panel definition for a different position starts.
 
 | Command | Parameter sequence | Description |
 |:---|:---|:---|
 |PLI0 ... PLI10|lx, by, hz, x, y, i, name [, z]|Inside panel in layer 0 to 10. Note: PLI0 is a panel inside the beam layer.|
-|PLA0 ... PLA10|lx, by, hz, x, y, i, name [, z]|Outside panel in layer 0 to 10. Note: PLA0 is a panel inside the beam layer.|
+|PLA0 ... PLA10|lx, by, hz, x, y, i, name [, z]|Outside panel in layer 0 to 10. Note: PLA0 is a panel inside the layer 0.|
 
 Common parameter meaning:
 
@@ -540,7 +541,7 @@ Common parameter meaning:
 |by|float|Panel width in Y direction.|
 |hz|float|Panel thickness / height in Z direction.|
 |x, y|float|Panel insertion position in element coordinates.|
-|z|float|Panel Z position. If omitted, value is calculated by layer logic.|
+|z|float|Optional panel Z position. If z is explicitly specified, sign convention applies: PLI z must be positive, PLA z must be negative. If omitted, value is calculated by layer logic.|
 |i|uint|Material index.|
 |name|string|Panel name / designation.|
 
@@ -557,6 +558,7 @@ Rules and behavior:
 | Topic | Rule |
 |:---|:---|
 |Optional z in older versions|Parameter [z] was optional up to interface version 3.3.|
+|z sign convention by panel side|If optional parameter z is explicitly specified: PLI must use positive z values, PLA must use negative z values.|
 |Polygon priority|If polygon points are defined for PLI/PLA, polygon geometry has priority over lx/by. The polygon must be closed (first and last point must be identical).|
 |Planarity|All polygon points of one panel must lie in exactly one plane (no warped panel).|
 |Layer height|If different panel heights exist in one layer, the thickest panel defines the full layer height.|
@@ -984,9 +986,9 @@ The evaluation of the ones position is being withdrawn.
 |  |  |   
 |:---	|	:---	|	
 |The tens position in the material index defines the rotation around the longitudinal axis of the compo- nent.|0: Not rotated|
-||1: rotated by 90ï¿½|
-||2: rotated by 180ï¿½|
-||3: rotated by 270ï¿½|
+||1: rotated by 90°|
+||2: rotated by 180°|
+||3: rotated by 270°|
 
 
 If the rotation and alignment are specified, the rotation takes effect before the alignment.
@@ -1046,7 +1048,7 @@ Note: The following material index list is a recommendation. It can be adjusted 
 |Cavity insulation: cellulose |230-239|
 |Cavity insulation: soft wood fiber |240-249|
 |Cavity insulation: mineral wool |250-259|
-|Cavity insulation: fiberglass t.b.d. chs: ist auch Mineralwolle |260-269|
+|Cavity insulation: fiberglass |260-269|
 
 
 *Components in this index range have no influence on the offset and length calculation. 
@@ -1284,6 +1286,7 @@ The activation of the application unit for PAL processing is via control codes.
 |2 |Sealing tape 50 mm|
 |3 |Gluing|
 |4...9| Free|
+|tens digit 00...99| Free|
 |100 |Tool radius correction "left" Workpiece is located to the right of the processing line.|
 |200 |Tool radius correction "right" Workpiece is located to the left of the processing line|
 |300| No tool radius offset|
@@ -1304,7 +1307,7 @@ Example:
 
 ---
 
-<h3 id="6.5-polygon-bocked-surfaces">6.5 Polygon bocked surfaces</h3>
+<h3 id="6.5-polygon-blocked-surfaces">6.5 Polygon blocked surfaces</h3>
 
 The control code of a blocked surface qualifies the blocked surface for:
 
@@ -1326,7 +1329,7 @@ Starting from the image under 2.3.5, the transformation from Figure a.) to Figur
 
 The transformation from b.) to c.) arises through the positive angle.
 
-A positive angle Î´ would rotate the plane from Figure c.) around the already transformed Z" axis again.
+A positive angle would rotate the plane from Figure c.) around the already transformed Z" axis again.
 
 
 ---
@@ -1370,7 +1373,7 @@ See definition of the saw cut.
 
 Please note:
 
-In the reference drawing, the gradient angle Î² has a positive numerical value.
+In the reference drawing, the gradient angle has a positive numerical value.
 
 LS 4519.4,100,200,0,0,10000,valley jack rafter left,0;
 
@@ -1516,7 +1519,7 @@ PP 6251,0,15,0,0,0;
 PP 6894,0,15,0,0,0;
 PP 6894,2600,15,0,0,0;
 PP 6251,2600,15,0,0,0;
-PP 6251,2600,15,0,0,0;
+PP 6251,0,15,0,0,0;
 ```
 
 Panel, layer 1, external side
@@ -1564,7 +1567,7 @@ NR 78,902,4983,902,250,10;
 Slat
 
 ```text
-PLA2 50,2744,38,319,0,PLA #1,0;
+PLA2 50,2744,38,319,0,PLA #2,0;
 PP 319,0,38,0,0,0;
 PP 369,0,38,0,0,0;
 PP 369,2744,38,0,0,0;

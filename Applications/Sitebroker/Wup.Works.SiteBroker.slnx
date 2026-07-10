@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Wup.Works.SiteBroker.Client/Wup.Works.SiteBroker.Client.csproj" />
+  <Project Path="Wup.Works.SiteBroker.Client.Demo.Mes/Wup.Works.SiteBroker.Client.Demo.Mes.csproj" />
+  <Project Path="Wup.Works.SiteBroker.Client.Demo.Machine/Wup.Works.SiteBroker.Client.Demo.Machine.csproj" />
+</Solution>
