@@ -41,6 +41,21 @@ steps:
   - checkout: self
     fetchDepth: 1
 
+  - task: PowerShell@2
+    displayName: Verify pipeline runs on the release branch
+    inputs:
+      targetType: inline
+      script: |
+        $expected = "refs/heads/release/public"
+        $actual = "$(Build.SourceBranch)"
+        Write-Host "Expected branch: $expected"
+        Write-Host "Actual branch:   $actual"
+        if ($actual -ne $expected) {
+          Write-Host "##vso[task.logissue type=error]This pipeline may only run on the release branch '$expected'. Current branch: '$actual'."
+          exit 1
+        }
+        Write-Host "Running on the expected release branch."
+
   - script: |
       set -euo pipefail
 
