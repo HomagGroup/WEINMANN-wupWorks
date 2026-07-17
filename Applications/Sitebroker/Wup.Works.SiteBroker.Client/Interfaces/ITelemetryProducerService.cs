@@ -81,7 +81,10 @@ public interface ITelemetryProducerService
     /// <summary>Publish a tool's current counter value.</summary>
     Task PublishToolCounter(string instance, int value);
 
-    /// <summary>Remove a tool entry (clears its description, tool-type, counter-type and counter topics).</summary>
+    /// <summary>Publish a tool's operating time in seconds.</summary>
+    Task PublishToolTime(string instance, int value);
+
+    /// <summary>Remove a tool entry (clears its description, tool-type, counter-type, counter and time topics).</summary>
     Task RemoveTool(string instance);
 
     #endregion Indexed groups

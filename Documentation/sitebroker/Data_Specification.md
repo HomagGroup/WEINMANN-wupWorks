@@ -183,6 +183,10 @@ An entry is **removed** by publishing an empty retained payload to its topic (e.
 | `{MachineNumber}/telemetry/machine/tool/{instance}/tool-type` | tool | number | Tool type (see ToolType below) |
 | `{MachineNumber}/telemetry/machine/tool/{instance}/counter-type` | tool | number | Counter type (see CounterType below) |
 | `{MachineNumber}/telemetry/machine/tool/{instance}/counter` | tool | number | Current counter value |
+| `{MachineNumber}/telemetry/machine/tool/{instance}/time` | tool | number | Operating time of the tool in seconds |
+
+A tool has both a counter and an operating time, so the time is published on its own topic rather
+than as a counter type. Tools of type `Other` have no counter: for those, only `time` is published.
 
 ### ToolType enum
 
@@ -194,14 +198,17 @@ An entry is **removed** by publishing an empty retained payload to its topic (e.
 | 4 | `Fastening` | Fastening tool |
 | 5 | `Sawing` | Sawing tool |
 | 6 | `Glueing` | Glueing tool |
+| 7 | `Other` | Any other tool. No counter is published, only its operating time |
 
 ### CounterType enum
 
+The counter type follows from the tool type.
+
 | Value | Name | Meaning |
 |------:|------|---------|
-| 1 | `Shoots` | Fastening shoots for fastening tools |
-| 2 | `Distance` | Distance in meter, e.g. for milling, marking, sawing and glueing |
-| 3 | `Hits` | Hits, e.g for drilling |
+| 1 | `Shoots` | Fastening shoots, for fastening tools |
+| 2 | `Distance` | Distance in meter, for milling, marking, sawing and glueing tools |
+| 3 | `Hits` | Hits, for drilling tools |
 
 ### OCCI mapping
 
@@ -270,6 +277,7 @@ Task PublishToolDescription(string instance, string value);
 Task PublishToolType(string instance, ToolType value);
 Task PublishToolCounterType(string instance, CounterType value);
 Task PublishToolCounter(string instance, int value);
+Task PublishToolTime(string instance, int value);
 
 // Removal (publishes empty retained payload)
 Task RemoveErrorDescription(string instance);
@@ -277,7 +285,7 @@ Task RemoveWarningDescription(string instance);
 Task RemoveMaintenanceDescription(string instance);
 Task RemoveActionDescription(string instance);
 Task RemoveStorage(string instance);   // clears level, capacity and material topics
-Task RemoveTool(string instance);      // clears description, tool-type, counter-type and counter topics
+Task RemoveTool(string instance);      // clears description, tool-type, counter-type, counter and time topics
 
 // Current batch variant
 Task PublishBatchVariantId(string value);

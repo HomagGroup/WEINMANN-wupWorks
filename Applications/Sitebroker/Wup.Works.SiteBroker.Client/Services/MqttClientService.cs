@@ -21,7 +21,7 @@ public class MqttClientService : IMqttClientService
     private readonly IManagedMqttClient _managedMqttClient;
     private readonly MqttOptions _options;
     private MqttLastWillMessage? _lastWillMessage;
-    private static readonly Collection<string> _subscribedTopics = [];
+    private readonly Collection<string> _subscribedTopics = [];
 
     public event EventHandler? Connected;
     public event EventHandler? Disconnected;

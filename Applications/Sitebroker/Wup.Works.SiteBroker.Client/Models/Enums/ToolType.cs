@@ -22,5 +22,10 @@ public enum ToolType
     Sawing = 5,
 
     /// <summary>Glueing tool.</summary>
-    Glueing = 6
+    Glueing = 6,
+
+    /// <summary>
+    /// Any other tool. These tools have no counter; only their operating time is published.
+    /// </summary>
+    Other = 7
 }

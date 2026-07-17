@@ -26,6 +26,7 @@ public class TelemetryProducerService : ITelemetryProducerService
     private const string KeyToolType = "tool-type";
     private const string KeyCounterType = "counter-type";
     private const string KeyCounter = "counter";
+    private const string KeyTime = "time";
     private const string KeyId = "id";
     private const string KeyProgress = "progress";
     private const string KeyStarted = "started";
@@ -118,12 +119,16 @@ public class TelemetryProducerService : ITelemetryProducerService
     public Task PublishToolCounter(string instance, int value)
         => PublishValue(TelemetryTopicHelper.CreateToolTelemetryTopic(_sender, instance, KeyCounter), Number(value), TelemetryValueType.Number);
 
+    public Task PublishToolTime(string instance, int value)
+        => PublishValue(TelemetryTopicHelper.CreateToolTelemetryTopic(_sender, instance, KeyTime), Number(value), TelemetryValueType.Number);
+
     public async Task RemoveTool(string instance)
     {
         await Remove(TelemetryTopicHelper.CreateToolTelemetryTopic(_sender, instance, KeyDescription));
         await Remove(TelemetryTopicHelper.CreateToolTelemetryTopic(_sender, instance, KeyToolType));
         await Remove(TelemetryTopicHelper.CreateToolTelemetryTopic(_sender, instance, KeyCounterType));
         await Remove(TelemetryTopicHelper.CreateToolTelemetryTopic(_sender, instance, KeyCounter));
+        await Remove(TelemetryTopicHelper.CreateToolTelemetryTopic(_sender, instance, KeyTime));
     }
 
     #endregion Indexed groups
