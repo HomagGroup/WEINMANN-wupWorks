@@ -1,0 +1,126 @@
+TXT ============================================================;
+TXT Example: Roof battens (Dachlatten) with pitch-adjusted nailing;
+TXT NR rotation: ry to follow roof pitch (30°), so nails penetrate;
+TXT perpendicular to the underlying rafter surface;
+TXT Use case: Roof construction, battens on sarking board;
+TXT NOTE: rx/ry/rz parameters require consultation with WEINMANN;
+TXT ============================================================;
+VERSION 3.8;
+ELEMENTID b1a2c3d4-1002-4000-8002-000000000002;
+ANR Example-NR-Rotation-2026;
+ELB ROOF-BATTEN-RY;
+ELN ex-rb-ry-002;
+ZNR 0002;
+TXT Element: roof panel 4000mm x 3200mm, slope 30°, build-up 100mm;
+ELM 4000,3200,100,1;
+CAD wupEditor;
+CADRELEASE 2026.08;
+BEARBEITER WEINMANN Example;
+BAUVORHABEN NR Rotation Examples;
+
+TXT --- Rafters (LS) running in X direction, spacing 800mm ---;
+TXT Rafter 1;
+LS 4000,60,180,0,0,0,rafter-1,0;
+TXT Rafter 2;
+LS 4000,60,180,0,800,0,rafter-2,0;
+TXT Rafter 3;
+LS 4000,60,180,0,1600,0,rafter-3,0;
+TXT Rafter 4;
+LS 4000,60,180,0,2400,0,rafter-4,0;
+TXT Rafter 5;
+LS 4000,60,180,0,3140,0,rafter-5,0;
+
+TXT --- Sarking board (Schalungsbrett) PLI1 on top of rafters ---;
+PLI1 4000,3200,24,0,0,3,sarking-board,0;
+PP 0,0,24,0,0,0;
+PP 4000,0,24,0,0,0;
+PP 4000,3200,24,0,0,0;
+PP 0,3200,24,0,0,0;
+PP 0,0,24,0,0,0;
+
+TXT --- Roof battens (Dachlatten) 40x60mm perpendicular to rafters ---;
+TXT Battens run in Y direction, nailed through sarking board into rafters;
+TXT ry=30° tilts nail to match the 30° roof pitch projection;
+TXT so nail enters the rafter at a right angle to its sloped surface;
+
+TXT Batten 1 at x=400 (between edge and first rafter);
+PLI2 40,3200,60,400,0,3,roof-batten-1,0;
+PP 400,0,60,0,0,0;
+PP 440,0,60,0,0,0;
+PP 440,3200,60,0,0,0;
+PP 400,3200,60,0,0,0;
+PP 400,0,60,0,0,0;
+TXT Nail line - ry=30 tilts nail by 30° around Y axis (roof pitch angle);
+NR 420,100,420,3100,400,10,0,30,0;
+
+TXT Batten 2 at x=800;
+PLI2 40,3200,60,800,0,3,roof-batten-2,0;
+PP 800,0,60,0,0,0;
+PP 840,0,60,0,0,0;
+PP 840,3200,60,0,0,0;
+PP 800,3200,60,0,0,0;
+PP 800,0,60,0,0,0;
+NR 820,100,820,3100,400,10,0,30,0;
+
+TXT Batten 3 at x=1200;
+PLI2 40,3200,60,1200,0,3,roof-batten-3,0;
+PP 1200,0,60,0,0,0;
+PP 1240,0,60,0,0,0;
+PP 1240,3200,60,0,0,0;
+PP 1200,3200,60,0,0,0;
+PP 1200,0,60,0,0,0;
+NR 1220,100,1220,3100,400,10,0,30,0;
+
+TXT Batten 4 at x=1600;
+PLI2 40,3200,60,1600,0,3,roof-batten-4,0;
+PP 1600,0,60,0,0,0;
+PP 1640,0,60,0,0,0;
+PP 1640,3200,60,0,0,0;
+PP 1600,3200,60,0,0,0;
+PP 1600,0,60,0,0,0;
+NR 1620,100,1620,3100,400,10,0,30,0;
+
+TXT Batten 5 at x=2000;
+PLI2 40,3200,60,2000,0,3,roof-batten-5,0;
+PP 2000,0,60,0,0,0;
+PP 2040,0,60,0,0,0;
+PP 2040,3200,60,0,0,0;
+PP 2000,3200,60,0,0,0;
+PP 2000,0,60,0,0,0;
+NR 2020,100,2020,3100,400,10,0,30,0;
+
+TXT Batten 6 at x=2400;
+PLI2 40,3200,60,2400,0,3,roof-batten-6,0;
+PP 2400,0,60,0,0,0;
+PP 2440,0,60,0,0,0;
+PP 2440,3200,60,0,0,0;
+PP 2400,3200,60,0,0,0;
+PP 2400,0,60,0,0,0;
+NR 2420,100,2420,3100,400,10,0,30,0;
+
+TXT Batten 7 at x=2800;
+PLI2 40,3200,60,2800,0,3,roof-batten-7,0;
+PP 2800,0,60,0,0,0;
+PP 2840,0,60,0,0,0;
+PP 2840,3200,60,0,0,0;
+PP 2800,3200,60,0,0,0;
+PP 2800,0,60,0,0,0;
+NR 2820,100,2820,3100,400,10,0,30,0;
+
+TXT Batten 8 at x=3200;
+PLI2 40,3200,60,3200,0,3,roof-batten-8,0;
+PP 3200,0,60,0,0,0;
+PP 3240,0,60,0,0,0;
+PP 3240,3200,60,0,0,0;
+PP 3200,3200,60,0,0,0;
+PP 3200,0,60,0,0,0;
+NR 3220,100,3220,3100,400,10,0,30,0;
+
+TXT Batten 9 at x=3600;
+PLI2 40,3200,60,3600,0,3,roof-batten-9,0;
+PP 3600,0,60,0,0,0;
+PP 3640,0,60,0,0,0;
+PP 3640,3200,60,0,0,0;
+PP 3600,3200,60,0,0,0;
+PP 3600,0,60,0,0,0;
+NR 3620,100,3620,3100,400,10,0,30,0;

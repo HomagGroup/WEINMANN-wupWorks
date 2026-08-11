@@ -1,0 +1,82 @@
+TXT ============================================================;
+TXT Example: Diagonal wind bracing slats with rz rotation;
+TXT NR rotation: rz rotates nail in panel plane to follow the;
+TXT slat's diagonal orientation (45°);
+TXT Use case: Diagonal bracing on wall panels for wind load;
+TXT NOTE: rx/ry/rz parameters require consultation with WEINMANN;
+TXT ============================================================;
+VERSION 3.8;
+ELEMENTID b1a2c3d4-1003-4000-8003-000000000003;
+ANR Example-NR-Rotation-2026;
+ELB WALL-DIAG-RZ;
+ELN ex-diag-rz-003;
+ZNR 0003;
+ELM 2400,2400,160,1;
+CAD wupEditor;
+CADRELEASE 2026.08;
+BEARBEITER WEINMANN Example;
+BAUVORHABEN NR Rotation Examples;
+
+TXT --- Frame ---;
+UG 2400,80,160,0,0,0,bottom plate,0;
+OG 2400,80,160,0,2320,0,top plate,0;
+LS 2320,60,160,0,80,0,stud-L,0;
+LS 2320,60,160,2340,80,0,stud-R,0;
+LS 2320,60,160,1170,80,0,stud-C,0;
+
+TXT --- Inside panel: gypsum board ---;
+PLI1 2400,2400,12.5,0,0,70,gypsum-board,0;
+PP 0,0,12.5,0,0,0;
+PP 2400,0,12.5,0,0,0;
+PP 2400,2400,12.5,0,0,0;
+PP 0,2400,12.5,0,0,0;
+PP 0,0,12.5,0,0,0;
+
+TXT --- Outside panel: OSB ---;
+PLA1 2400,2400,15,0,0,30,OSB,0;
+PP 0,0,15,0,0,0;
+PP 2400,0,15,0,0,0;
+PP 2400,2400,15,0,0,0;
+PP 0,2400,15,0,0,0;
+PP 0,0,15,0,0,0;
+
+TXT --- Diagonal bracing slats on inside (PLI2), 120x20mm ---;
+TXT Slat runs diagonally from bottom-left to top-right (45°);
+TXT rz=45° rotates the nail in the panel plane to align with the slat axis;
+TXT This ensures the nail is driven along the slat's grain direction;
+
+TXT Diagonal brace 1: bottom-left to top-right;
+TXT Slat is approximated as a rectangular panel at angle;
+TXT Using BTn for true diagonal, but here simplified as PLI2 strip;
+TXT Nail points along the brace at crossings with studs;
+
+TXT Nail at crossing with left stud (x=30, y=30 approx);
+TXT rz=45: nail rotated 45° in panel plane (along brace direction);
+PLI2 2400,40,20,0,0,3,wind-brace-diag,0;
+PP 0,0,20,0,0,0;
+PP 2400,0,20,0,0,0;
+PP 2400,2400,20,0,0,0;
+PP 0,2400,20,0,0,0;
+PP 0,0,20,0,0,0;
+
+TXT Nail points at stud intersections, rz=45 aligns nail with diagonal slat;
+NR 30,30,30,30,1,10,0,0,45;
+NR 600,600,600,600,1,10,0,0,45;
+NR 1200,1200,1200,1200,1,10,0,0,45;
+NR 1800,1800,1800,1800,1,10,0,0,45;
+NR 2370,2370,2370,2370,1,10,0,0,45;
+
+TXT --- Counter-diagonal brace (top-left to bottom-right, rz=-45°) ---;
+PLI2 2400,40,20,0,2360,3,wind-brace-counter-diag,0;
+PP 0,2400,20,0,0,0;
+PP 2400,2400,20,0,0,0;
+PP 2400,0,20,0,0,0;
+PP 0,0,20,0,0,0;
+PP 0,2400,20,0,0,0;
+
+TXT rz=-45 aligns nail along counter-diagonal direction;
+NR 30,2370,30,2370,1,10,0,0,-45;
+NR 600,1800,600,1800,1,10,0,0,-45;
+NR 1200,1200,1200,1200,1,10,0,0,-45;
+NR 1800,600,1800,600,1,10,0,0,-45;
+NR 2370,30,2370,30,1,10,0,0,-45;
